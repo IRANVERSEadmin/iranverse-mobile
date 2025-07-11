@@ -1,17 +1,27 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "noEmit": true,
     "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
+    "target": "es2020",
+    "lib": [
+      "es2020",
+      "dom"
+    ],
+    "allowJs": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
     "jsx": "react-native"
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+    "src/**/*",
+    "App.tsx"
+  ],
+  "exclude": [
+    "node_modules/**/*"
+  ],
+  "extends": "expo/tsconfig.base"
 }

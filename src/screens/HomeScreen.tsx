@@ -1,327 +1,468 @@
 // src/screens/HomeScreen.tsx
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+// IRANVERSE Enterprise Home Screen - Revolutionary Avatar Experience
+// Tesla-inspired home with TalkingHead integration and 3D navigation
+// Built for 90M users - Enterprise Performance & Accessibility
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
-  StatusBar,
-  SafeAreaView,
-  ActivityIndicator,
-  Dimensions,
   Animated,
   Alert,
   TouchableOpacity,
   Platform,
+  Dimensions,
+  BackHandler,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 
-// Import enterprise components
+// IRANVERSE Components
+import SafeArea from '../components/ui/SafeArea';
+import GradientBackground from '../components/ui/GradientBackground';
 import Button from '../components/ui/Button';
-import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../hooks/useLanguage';
+import Text from '../components/ui/Text';
+import Loader from '../components/ui/Loader';
+import Toast, { toast } from '../components/ui/Toast';
+import { useTheme, useColors, useSpacing, useAnimations } from '../components/theme/ThemeProvider';
 
-// Get screen dimensions for responsive sizing
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+// ========================================================================================
+// TYPES & INTERFACES - ENTERPRISE HOME SYSTEM
+// ========================================================================================
 
-interface HomeScreenProps {
-  navigation: any;
-  route?: {
-    params?: {
-      avatarUrl?: string;
-    };
-  };
+export interface HomeScreenRouteParams {
+  userId: string;
+  avatarUrl?: string;
+  isNewUser?: boolean;
 }
 
-interface WebViewMessage {
-  type: string;
+export type RootStackParamList = {
+  Home: HomeScreenRouteParams;
+  ThreeDScene: { avatarUrl: string };
+  UserProfile: undefined;
+  Messages: undefined;
+  SocialFeed: undefined;
+  CreatePost: undefined;
+  Notifications: undefined;
+  AvatarCreation: {
+    userId: string;
+    email: string;
+    userName: string;
+    accessToken: string;
+  };
+};
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenRouteProp = RouteProp<RootStackParamList, 'Home'>;
+
+interface TalkingHeadMessage {
+  type: 'AVATAR_READY' | 'AVATAR_ERROR' | 'LOADING_PROGRESS' | 'DEBUG_INFO' | 'SPEAKING_STARTED' | 'SPEAKING_ENDED' | 'SPEAKING_ERROR';
+  success?: boolean;
   message?: string;
   progress?: number;
-  success?: boolean;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
-  // Get auth context with null safety
-  const { user, isAuthenticated, logout } = useAuth();
-  const { t, language, toggleLanguage, isRTL } = useLanguage();
-  
-  // States for avatar and speech
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [avatarReady, setAvatarReady] = useState(false);
-  const [webViewKey, setWebViewKey] = useState(1); // For forcing WebView refresh
-  const [avatarError, setAvatarError] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState(''); 
-  const [avatarLoaded, setAvatarLoaded] = useState(false);
-  
-  // Animation ref for subtle pulse
+interface HomeState {
+  avatarUrl: string | null;
+  avatarReady: boolean;
+  avatarLoaded: boolean;
+  isLoading: boolean;
+  hasError: boolean;
+  errorMessage: string;
+  isSpeaking: boolean;
+  webViewKey: number;
+  toastVisible: boolean;
+  toastMessage: string;
+  toastType: 'success' | 'error' | 'warning';
+}
+
+// ========================================================================================
+// HOME SCREEN - REVOLUTIONARY AVATAR EXPERIENCE
+// ========================================================================================
+
+const HomeScreen: React.FC = () => {
+  // Navigation & Route
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const route = useRoute<HomeScreenRouteProp>();
+  const { userId, avatarUrl: routeAvatarUrl, isNewUser = false } = route.params;
+
+  // Theme System
+  const theme = useTheme();
+  const colors = useColors();
+  const spacing = useSpacing();
+  const animations = useAnimations();
+
+  // Screen Dimensions
+  const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+  // Component State
+  const [state, setState] = useState<HomeState>({
+    avatarUrl: null,
+    avatarReady: false,
+    avatarLoaded: false,
+    isLoading: true,
+    hasError: false,
+    errorMessage: '',
+    isSpeaking: false,
+    webViewKey: 1,
+    toastVisible: false,
+    toastMessage: '',
+    toastType: 'success',
+  });
+
+  // Animation Values with cleanup
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
-  // WebView ref
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Refs
   const webViewRef = useRef<WebView>(null);
-  
-  // Google API key - in a real app this would be securely stored
-  const googleTextToSpeechApiKey = 'AIzaSyDSVoMEXdDuI9w_DwRqjBjYB5e9cr1v_1Q';
-  
-  // Start pulse animation for avatar container
+  const setupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup effect
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.03,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0.97,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-    
     return () => {
+      if (setupTimeoutRef.current) {
+        clearTimeout(setupTimeoutRef.current);
+        setupTimeoutRef.current = null;
+      }
+
       pulseAnim.stopAnimation();
+      fadeAnim.stopAnimation();
+      scaleAnim.stopAnimation();
+      pulseAnim.removeAllListeners();
+      fadeAnim.removeAllListeners();
+      scaleAnim.removeAllListeners();
     };
-  }, [pulseAnim]);
-  
-  // Set up the avatar URL from navigation params or storage
-  useEffect(() => {
-    const setupAvatar = async () => {
-      try {
-        // First check if we have an avatar URL from navigation params
-        const routeAvatarUrl = route?.params?.avatarUrl;
-        
-        if (routeAvatarUrl) {
-          console.log('Using avatar URL from navigation:', routeAvatarUrl);
-          setAvatarUrl(routeAvatarUrl);
-          // Store the avatar URL for future use
-          await AsyncStorage.setItem('@avatar_url', routeAvatarUrl);
-          // Clear any previous errors
-          setAvatarError(null);
-          return;
-        } 
-        
-        // If not from navigation, try to get from storage
+  }, [pulseAnim, fadeAnim, scaleAnim]);
+
+  // ========================================================================================
+  // TOAST MANAGEMENT - ENTERPRISE MESSAGING
+  // ========================================================================================
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setState(prev => ({
+      ...prev,
+      toastVisible: true,
+      toastMessage: message,
+      toastType: type,
+    }));
+
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        toastVisible: false,
+      }));
+    }, 3000);
+  }, []);
+
+  // ========================================================================================
+  // AVATAR MANAGEMENT - ENTERPRISE DATA HANDLING
+  // ========================================================================================
+
+  const setupAvatar = useCallback(async () => {
+    try {
+      let finalAvatarUrl: string | null = null;
+
+      // Priority: Route params > AsyncStorage > Default
+      if (routeAvatarUrl) {
+        console.log('Using avatar URL from navigation:', routeAvatarUrl);
+        finalAvatarUrl = routeAvatarUrl;
+        await AsyncStorage.setItem('@avatar_url', routeAvatarUrl);
+      } else {
         const storedAvatarUrl = await AsyncStorage.getItem('@avatar_url');
         if (storedAvatarUrl) {
           console.log('Using avatar URL from storage:', storedAvatarUrl);
-          setAvatarUrl(storedAvatarUrl);
-          setAvatarError(null);
-          return;
+          finalAvatarUrl = storedAvatarUrl;
         }
-        
-        // If we get here, we don't have an avatar URL
-        console.error('No avatar URL found');
-        setAvatarError('No avatar URL was provided. Please create an avatar first.');
-        setIsLoading(false);
-        
-        // Alert user that they need to create an avatar first
-        Alert.alert(
-          t('avatar.required') || 'Avatar Required', 
-          t('avatar.description') || 'Please create an avatar before using the application.',
-          [{ 
-            text: t('avatar.title') || 'Create Avatar', 
-            onPress: () => navigation.navigate('AvatarCreation') 
-          }]
-        );
-      } catch (error) {
-        console.error('Error setting up avatar:', error);
-        setAvatarError('Error: ' + (error as Error).message);
-        setIsLoading(false);
       }
-    };
-    
-    setupAvatar();
-  }, [route?.params?.avatarUrl, navigation, t]);
-  
-  // WebView HTML content
+
+      if (!finalAvatarUrl) {
+        console.log('No avatar URL found, using default');
+        finalAvatarUrl = 'https://raw.githubusercontent.com/FreedomThroughSubversion/test-asses/main/default-avatar.glb';
+        await AsyncStorage.setItem('@avatar_url', finalAvatarUrl);
+      }
+
+      setState(prev => ({ 
+        ...prev, 
+        avatarUrl: finalAvatarUrl, 
+        hasError: false, 
+        errorMessage: '' 
+      }));
+
+      // Show welcome message for new users
+      if (isNewUser) {
+        setupTimeoutRef.current = setTimeout(() => {
+          showToast('Welcome to IRANVERSE! Your avatar is ready to speak.', 'success');
+        }, 2000);
+      }
+
+    } catch (error) {
+      console.error('Error setting up avatar:', error);
+      setState(prev => ({ 
+        ...prev, 
+        hasError: true, 
+        errorMessage: 'Failed to load avatar. Please try again.',
+        isLoading: false 
+      }));
+      
+      Alert.alert(
+        'Avatar Required',
+        'Please create an avatar before using the application.',
+        [{ 
+          text: 'Create Avatar', 
+          onPress: () => navigation.navigate('AvatarCreation', {
+            userId,
+            email: '', // Would need to be passed or fetched
+            userName: '', // Would need to be passed or fetched
+            accessToken: '', // Would need to be passed or fetched
+          })
+        }]
+      );
+    }
+  }, [routeAvatarUrl, isNewUser, navigation, userId, showToast]);
+
+  // ========================================================================================
+  // TALKING HEAD INTEGRATION - GOOGLE TTS
+  // ========================================================================================
+
+  const googleTextToSpeechApiKey = 'AIzaSyDSVoMEXdDuI9w_DwRqjBjYB5e9cr1v_1Q'; // Production: use secure storage
+
   const getWebViewHtml = useCallback(() => {
-    console.log('Using avatar URL in WebView:', avatarUrl);
-    
+    if (!state.avatarUrl) return '';
+
+    console.log('Generating WebView HTML for avatar:', state.avatarUrl);
+
     return `
-    <!DOCTYPE html>
-    <html lang="${language === 'farsi' ? 'fa' : 'en'}">
-    <head>
-      <title>Talking Head - IRANVERSE</title>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>IRANVERSE Talking Head</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <style>
+          body, html { 
+            width: 100%; 
+            height: 100%; 
+            margin: 0; 
+            padding: 0;
+            max-width: 800px; 
+            position: relative; 
+            background-color: transparent; 
+            color: white; 
+            overflow: hidden;
+          }
+          #avatar { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+            background-color: transparent; 
+          }
+          #loading { 
+            display: block; 
+            position: absolute; 
+            bottom: 10px; 
+            left: 10px; 
+            right: 10px; 
+            height: 50px; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+            font-size: 16px; 
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .error-message {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+          }
+        </style>
 
-      <style>
-        body, html { 
-          width:100%; 
-          height:100%; 
-          max-width: 800px; 
-          margin: auto; 
-          position: relative; 
-          background: linear-gradient(135deg, #0a0a0a, #1a1a1a); 
-          color: white; 
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        <script type="importmap">
+        { "imports":
+          {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+            "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.4/modules/talkinghead.mjs"
+          }
         }
-        #avatar { 
-          display: block; 
-          width:100%; 
-          height:100%; 
-          background-color: transparent; 
-        }
-        #loading { 
-          display: block; 
-          position: absolute; 
-          bottom: 10px; 
-          left: 10px; 
-          right: 10px; 
-          height: 50px; 
-          font-size: 18px; 
-          font-weight: 600;
-          color: #00ff88;
-          text-align: center;
-        }
-      </style>
+        </script>
 
-      <script type="importmap">
-      { "imports":
-        {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js/+esm",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-          "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.4/modules/talkinghead.mjs"
-        }
-      }
-      </script>
+        <script type="module">
+          import { TalkingHead } from "talkinghead";
 
-      <script type="module">
-        import { TalkingHead } from "talkinghead";
+          let head;
+          let isInitialized = false;
 
-        let head;
-
-        document.addEventListener('DOMContentLoaded', async function(e) {
-          // Notify React Native that the HTML has loaded
-          try {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'DEBUG_INFO',
-              message: "DOMContentLoaded fired"
-            }));
-          } catch (error) {
-            console.error("Failed to send debug info:", error);
+          function postMessageToReactNative(msg) {
+            try {
+              if (window.ReactNativeWebView) {
+                const message = typeof msg === 'string' ? msg : JSON.stringify(msg);
+                window.ReactNativeWebView.postMessage(message);
+              }
+            } catch (error) {
+              console.error('Failed to post message to React Native:', error);
+            }
           }
 
-          // Instantiate the class
-          const nodeAvatar = document.getElementById('avatar');
-          head = new TalkingHead( nodeAvatar, {
-            ttsEndpoint: "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize",
-            ttsApikey: "${googleTextToSpeechApiKey}",
-            lipsyncModules: ["en", "fi"],
-            cameraView: "full",
-            cameraNear: 0.01,
-            cameraFar: 1000,
-            cameraPos: [0, 0.1, 0.25],
-            cameraFov: 35
-          });
-
-          // Load and show the avatar
-          const nodeLoading = document.getElementById('loading');
-          try {
-            nodeLoading.textContent = "${t('common.loading') || 'Loading...'}";
-            
-            // Use the exact avatar URL from React Native
-            const avatarUrl = "${avatarUrl.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}";
-            console.log("Avatar URL in WebView:", avatarUrl);
-            
-            // Notify React Native about which URL we're trying to load
+          document.addEventListener('DOMContentLoaded', async function(e) {
             try {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
+              postMessageToReactNative({
+                type: 'DEBUG_INFO',
+                message: "DOMContentLoaded fired"
+              });
+
+              const nodeAvatar = document.getElementById('avatar');
+              const nodeLoading = document.getElementById('loading');
+
+              if (!nodeAvatar) {
+                throw new Error('Avatar container not found');
+              }
+
+              // Initialize TalkingHead
+              head = new TalkingHead(nodeAvatar, {
+                ttsEndpoint: "https://eu-texttospeech.googleapis.com/v1beta1/text:synthesize",
+                ttsApikey: "${googleTextToSpeechApiKey}",
+                lipsyncModules: ["en", "fi"],
+                cameraView: "full",
+                cameraNear: 0.01,
+                cameraFar: 1000,
+                cameraPos: [0, 0.1, 0.25],
+                cameraFov: 35
+              });
+
+              nodeLoading.textContent = "Loading avatar...";
+              
+              const avatarUrl = "${state.avatarUrl.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}";
+              console.log("Loading avatar from URL:", avatarUrl);
+              
+              postMessageToReactNative({
                 type: 'DEBUG_INFO',
                 message: "Loading avatar from URL: " + avatarUrl
-              }));
-            } catch (error) {
-              console.error("Failed to send debug info:", error);
-            }
-            
-            await head.showAvatar({
-              url: avatarUrl,
-              body: 'N', // Just head and shoulders
-              avatarMood: 'neutral',
-              ttsLang: "${language === 'farsi' ? 'fa-IR' : 'en-GB'}",
-              ttsVoice: "${language === 'farsi' ? 'fa-IR-Standard-A' : 'en-GB-Standard-A'}",
-              lipsyncLang: '${language === 'farsi' ? 'fa' : 'en'}',
-              scale: 2.0 
-            }, (ev) => {
-              if (ev.lengthComputable) {
-                let val = Math.min(100, Math.round(ev.loaded/ev.total * 100));
-                nodeLoading.textContent = "${t('common.loading') || 'Loading'} " + val + "%";
-                
-                // Notify React Native of progress
-                try {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({
+              });
+              
+              await head.showAvatar({
+                url: avatarUrl,
+                body: 'N',
+                avatarMood: 'neutral',
+                ttsLang: "en-GB",
+                ttsVoice: "en-GB-Standard-A",
+                lipsyncLang: 'en',
+                scale: 2.0 
+              }, (ev) => {
+                if (ev.lengthComputable) {
+                  let val = Math.min(100, Math.round(ev.loaded/ev.total * 100));
+                  nodeLoading.textContent = "Loading " + val + "%";
+                  
+                  postMessageToReactNative({
                     type: 'LOADING_PROGRESS',
                     progress: val
-                  }));
-                } catch (error) {
-                  console.error("Failed to send progress to React Native:", error);
+                  });
+                }
+              });
+
+              nodeLoading.style.display = 'none';
+              isInitialized = true;
+              
+              postMessageToReactNative({
+                type: 'AVATAR_READY',
+                success: true
+              });
+
+              console.log('Avatar loaded successfully');
+
+            } catch (error) {
+              console.error('Avatar loading error:', error);
+              const nodeLoading = document.getElementById('loading');
+              if (nodeLoading) {
+                nodeLoading.textContent = 'Error: ' + error.message;
+                nodeLoading.className = 'error-message';
+              }
+              
+              postMessageToReactNative({
+                type: 'AVATAR_ERROR',
+                message: error.message || 'Failed to load avatar'
+              });
+            }
+
+            // Handle visibility changes
+            document.addEventListener("visibilitychange", async function (ev) {
+              if (head && isInitialized) {
+                if (document.visibilityState === "visible") {
+                  head.start();
+                } else {
+                  head.stop();
                 }
               }
             });
-            nodeLoading.style.display = 'none';
-            
-            // Notify React Native that avatar is ready
-            try {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'AVATAR_READY',
-                success: true
-              }));
-            } catch (error) {
-              console.error("Failed to notify React Native of avatar ready:", error);
-            }
-          } catch (error) {
-            console.log(error);
-            nodeLoading.textContent = error.toString();
-            
-            // Notify React Native of error
-            try {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'AVATAR_ERROR',
-                message: error.toString()
-              }));
-            } catch (error) {
-              console.error("Failed to send error to React Native:", error);
-            }
-          }
-
-          // Pause animation when document is not visible
-          document.addEventListener("visibilitychange", async function (ev) {
-            if (document.visibilityState === "visible") {
-              head.start();
-            } else {
-              head.stop();
-            }
           });
 
-        });
-      </script>
-    </head>
+          // Test speaking function
+          window.testSpeak = function(text = "Hello! Welcome to IRANVERSE. I am your digital avatar, ready to assist you in this revolutionary metaverse experience.") {
+            if (head && isInitialized) {
+              try {
+                postMessageToReactNative({ type: 'SPEAKING_STARTED' });
+                
+                head.speakText(text).then(() => {
+                  postMessageToReactNative({ type: 'SPEAKING_ENDED' });
+                }).catch((error) => {
+                  console.error('Speaking error:', error);
+                  postMessageToReactNative({ 
+                    type: 'SPEAKING_ERROR', 
+                    message: error.message || 'Speaking failed'
+                  });
+                });
+              } catch (error) {
+                console.error('Test speak error:', error);
+                postMessageToReactNative({ 
+                  type: 'SPEAKING_ERROR', 
+                  message: error.message || 'Speaking initialization failed'
+                });
+              }
+            } else {
+              console.warn('Avatar not ready for speaking');
+              postMessageToReactNative({ 
+                type: 'SPEAKING_ERROR', 
+                message: 'Avatar not ready'
+              });
+            }
+          };
+        </script>
+      </head>
 
-    <body>
-      <div id="avatar"></div>
-      <div id="loading"></div>
-    </body>
-
-    </html>
+      <body>
+        <div id="avatar"></div>
+        <div id="loading">Initializing avatar...</div>
+      </body>
+      </html>
     `;
-  }, [avatarUrl, googleTextToSpeechApiKey, language, t]);
+  }, [state.avatarUrl, googleTextToSpeechApiKey]);
 
-  // Handle WebView messages with enhanced error logging
-  const handleWebViewMessage = useCallback((event: any) => {
+  // ========================================================================================
+  // WEBVIEW MESSAGE HANDLING - ENTERPRISE COMMUNICATION
+  // ========================================================================================
+
+  const handleWebViewMessage = useCallback((event: WebViewMessageEvent) => {
     try {
-      const message: WebViewMessage = JSON.parse(event.nativeEvent.data);
+      const messageData = event.nativeEvent.data;
+      console.log('WebView message received:', messageData);
+
+      const message: TalkingHeadMessage = JSON.parse(messageData);
       
       switch (message.type) {
         case 'AVATAR_READY':
           console.log('Avatar is ready');
-          setAvatarReady(true);
-          setIsLoading(false);
-          setAvatarLoaded(true);
-          // Explicitly clear any errors when avatar is ready
-          setAvatarError(null);
+          setState(prev => ({ 
+            ...prev, 
+            avatarReady: true, 
+            avatarLoaded: true, 
+            isLoading: false,
+            hasError: false 
+          }));
           break;
           
         case 'LOADING_PROGRESS':
@@ -330,252 +471,409 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, route }) => {
           
         case 'AVATAR_ERROR':
           console.error('Avatar error:', message.message);
-          setAvatarError(message.message || 'Unknown error');
-          setIsLoading(false);
+          setState(prev => ({ 
+            ...prev, 
+            hasError: true, 
+            errorMessage: message.message || 'Avatar loading failed',
+            isLoading: false 
+          }));
           break;
           
         case 'SPEAKING_STARTED':
           console.log('Speaking started');
-          setIsSpeaking(true);
+          setState(prev => ({ ...prev, isSpeaking: true }));
           break;
           
         case 'SPEAKING_ENDED':
           console.log('Speaking ended');
-          setIsSpeaking(false);
+          setState(prev => ({ ...prev, isSpeaking: false }));
           break;
           
         case 'SPEAKING_ERROR':
           console.error('Speaking error:', message.message);
-          setIsSpeaking(false);
-          Alert.alert(
-            t('common.error') || "Speech Error",
-            message.message || "An error occurred during speech.",
-            [{ text: t('common.ok') || "OK" }]
-          );
+          setState(prev => ({ ...prev, isSpeaking: false }));
+          showToast(message.message || 'Speaking failed', 'error');
+          break;
+
+        case 'DEBUG_INFO':
+          console.log('Debug:', message.message);
+          break;
+          
+        default:
+          console.log('Unhandled message type:', message.type);
           break;
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error);
     }
-  }, [t]);
+  }, [showToast]);
 
-  // WebView error handler
   const handleWebViewError = useCallback((error: any) => {
     console.error('WebView error:', error);
-    setAvatarError('WebView error: ' + error.description);
-    setIsLoading(false);
-  }, [route?.params?.avatarUrl, navigation, t]);
+    setState(prev => ({ 
+      ...prev, 
+      hasError: true, 
+      errorMessage: 'WebView failed to load',
+      isLoading: false 
+    }));
+  }, []);
 
-  // Reset WebView to reload the avatar
+  // ========================================================================================
+  // AVATAR ACTIONS - INTERACTIVE FEATURES
+  // ========================================================================================
+
   const resetAvatar = useCallback(() => {
-    setIsLoading(true);
-    setAvatarReady(false);
-    setAvatarError(null);
-    setWebViewKey(prevKey => prevKey + 1);
-  }, [route?.params?.avatarUrl, navigation, t]);
+    setState(prev => ({ 
+      ...prev, 
+      isLoading: true, 
+      avatarReady: false, 
+      avatarLoaded: false, 
+      hasError: false, 
+      errorMessage: '',
+      webViewKey: prev.webViewKey + 1 
+    }));
+  }, []);
 
-  // Handle navigation to authenticated features
-  const navigateToAuthFeature = useCallback((screenName: string, params: any = {}) => {
-    if (!isAuthenticated) {
-      Alert.alert(
-        t('auth.login') || "Sign In Required",
-        t('auth.loginRequired') || "Please sign in to access this feature",
-        [
-          { text: t('common.cancel') || "Cancel", style: "cancel" },
-          { 
-            text: t('auth.login') || "Sign In", 
-            onPress: () => navigation.navigate('Login', {
-              returnTo: { screen: screenName, params }
-            })
-          }
-        ]
-      );
-      return false;
+  const testAvatarSpeech = useCallback(() => {
+    if (webViewRef.current && state.avatarReady) {
+      webViewRef.current.injectJavaScript(`
+        if (typeof window.testSpeak === 'function') {
+          window.testSpeak();
+        } else {
+          console.error('testSpeak function not available');
+        }
+        true;
+      `);
+    } else {
+      showToast('Avatar is not ready yet. Please wait.', 'warning');
     }
-    
-    // If authenticated, navigate to the requested screen
-    navigation.navigate(screenName, params);
-    return true;
-  }, [isAuthenticated, navigation, t]);
+  }, [state.avatarReady, showToast]);
 
-  // Navigate to 3D scene
+  // ========================================================================================
+  // NAVIGATION HANDLERS - ENTERPRISE FLOW
+  // ========================================================================================
+
   const navigateTo3DScene = useCallback(() => {
-    if (avatarUrl) {
-      navigation.navigate('ThreeDScene', { avatarUrl });
+    if (state.avatarUrl) {
+      // Haptic feedback
+      if (Platform.OS !== 'web') {
+        try {
+          const { Vibration } = require('react-native');
+          Vibration.vibrate(50);
+        } catch (error) {
+          console.warn('Haptic feedback error:', error);
+        }
+      }
+
+      navigation.navigate('ThreeDScene', { avatarUrl: state.avatarUrl });
     } else {
       Alert.alert(
-        t('avatar.required') || "Avatar Required", 
-        t('avatar.description') || "Please create an avatar before entering the 3D world.",
+        "Avatar Required", 
+        "Please create an avatar before entering the 3D world.",
         [{ 
-          text: t('avatar.title') || 'Create Avatar', 
-          onPress: () => navigation.navigate('AvatarCreation') 
+          text: 'Create Avatar', 
+          onPress: () => navigation.navigate('AvatarCreation', {
+            userId,
+            email: '', // Would need proper user data
+            userName: '',
+            accessToken: '',
+          })
         }]
       );
     }
-  }, [avatarUrl, navigation, t]);
+  }, [state.avatarUrl, navigation, userId]);
 
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigation.navigate('Login');
-    } catch (error) {
-      console.error('Logout error:', error);
+  const navigateToFeature = useCallback((feature: keyof RootStackParamList) => {
+    // Placeholder for authenticated features
+    Alert.alert(
+      "Feature Coming Soon",
+      `${feature} will be available in the next update.`,
+      [{ text: "OK" }]
+    );
+  }, []);
+
+  // ========================================================================================
+  // LIFECYCLE EFFECTS - ENTERPRISE INITIALIZATION
+  // ========================================================================================
+
+  useEffect(() => {
+    setupAvatar();
+  }, [setupAvatar]);
+
+  // Pulse animation for speaking state
+  useEffect(() => {
+    if (state.isSpeaking) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0.95,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
-  };
+  }, [state.isSpeaking, pulseAnim]);
 
-  // Get a default username
-  const getUserName = () => {
-    if (!user) return t('common.guestUser') || "Guest User";
-    return `${user.first_name} ${user.last_name}` || user.email || "User";
-  };
+  // Prevent back navigation
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit IRANVERSE",
+          "Are you sure you want to exit?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Exit", onPress: () => BackHandler.exitApp() }
+          ]
+        );
+        return true;
+      };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      <LinearGradient
-        colors={['#0a0a0a', '#1a1a1a', '#0f0f0f']}
-        style={styles.gradient}
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }, [])
+  );
+
+  // ========================================================================================
+  // RENDER HELPERS - ENTERPRISE UI COMPONENTS
+  // ========================================================================================
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity 
+        style={styles.headerButton}
+        onPress={() => navigateToFeature('UserProfile')}
+        accessibilityLabel="User profile"
       >
-        {/* Header with User Profile Button */}
-        <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-          <TouchableOpacity 
-            style={styles.profileButton}
-            onPress={() => { navigateToAuthFeature('UserProfile'); }}
-          >
-            <Text style={styles.profileIcon}>👤</Text>
-          </TouchableOpacity>
-          
-          <Text style={styles.headerTitle}>IRANVERSE</Text>
-          
-          <TouchableOpacity
-            onPress={toggleLanguage}
-            style={styles.languageButton}
-          >
-            <Text style={styles.languageText}>
-              {language === 'english' ? 'فا' : 'EN'}
+        <Text style={styles.headerIcon}>👤</Text>
+      </TouchableOpacity>
+      
+      <Text variant="h3" style={styles.headerTitle}>
+        IRANVERSE
+      </Text>
+      
+      <TouchableOpacity 
+        style={styles.headerButton}
+        onPress={() => navigateToFeature('Messages')}
+        accessibilityLabel="Messages"
+      >
+        <Text style={styles.headerIcon}>💬</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderAvatarSection = () => (
+    <View style={styles.avatarSection}>
+      <Animated.View 
+        style={[
+          styles.avatarContainer,
+          {
+            transform: [{ scale: state.isSpeaking ? pulseAnim : scaleAnim }],
+            opacity: fadeAnim,
+          }
+        ]}
+      >
+        {/* Loading Overlay */}
+        {state.isLoading && (
+          <View style={styles.loadingOverlay}>
+            <Loader
+              variant="orbital"
+              size="large"
+              text="Loading Your Avatar..."
+              color={colors.interactive.text}
+            />
+          </View>
+        )}
+       
+        {/* Error Overlay */}
+        {state.hasError && !state.avatarReady && (
+          <View style={styles.errorOverlay}>
+            <Text variant="h3" color="error" style={styles.errorTitle}>
+              Avatar Error
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text variant="body" color="secondary" style={styles.errorMessage}>
+              {state.errorMessage}
+            </Text>
+            <Button
+              variant="secondary"
+              onPress={resetAvatar}
+              style={styles.retryButton}
+            >
+              Try Again
+            </Button>
+          </View>
+        )}
         
-        {/* User Welcome */}
-        <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>
-            {t('common.welcome')} {getUserName()}
-          </Text>
-        </View>
-        
-        {/* Avatar WebView Container */}
-        <View style={styles.avatarSection}>
-          <Animated.View 
-            style={[
-              styles.avatarContainer,
-              { transform: [{ scale: isSpeaking ? pulseAnim : 1 }] }
-            ]}
-          >
-            {isLoading && (
-              <View style={styles.loadingOverlay}>
-                <ActivityIndicator size="large" color="#00ff88" />
-                <Text style={styles.loadingText}>
-                  {t('avatar.creating') || 'Loading Your Avatar...'}
-                </Text>
-              </View>
-            )}
-           
-            {avatarError && !avatarReady && (
-              <View style={styles.errorOverlay}>
-                <Text style={styles.errorText}>
-                  {t('avatar.error') || 'Avatar Error'}
-                </Text>
-                <Text style={styles.errorMessage}>{avatarError}</Text>
-                <TouchableOpacity style={styles.tryAgainButton} onPress={resetAvatar}>
-                  <Text style={styles.tryAgainButtonText}>
-                    {t('common.retry') || 'Try Again'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            
-            {avatarUrl && (
-              <WebView
-                key={webViewKey}
-                ref={webViewRef}
-                originWhitelist={['*']}
-                source={{ html: getWebViewHtml() }}
-                style={styles.webView}
-                onMessage={handleWebViewMessage}
-                onError={handleWebViewError}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                
-                
-                
-                
-                
-                
-                
-              />
-            )}
-          </Animated.View>
-        </View>
-        
-        {/* Action Buttons */}
-        <View style={styles.actionSection}>
+        {/* Avatar WebView */}
+        {state.avatarUrl && (
+          <WebView
+            key={state.webViewKey}
+            ref={webViewRef}
+            originWhitelist={['*']}
+            source={{ html: getWebViewHtml() }}
+            style={styles.webView}
+            onMessage={handleWebViewMessage}
+            onError={handleWebViewError}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            allowFileAccess={true}
+            allowUniversalAccessFromFileURLs={true}
+            mixedContentMode="always"
+            startInLoadingState={false}
+            renderLoading={() => <></>}
+            onShouldStartLoadWithRequest={() => true}
+            scrollEnabled={false}
+            bounces={false}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </Animated.View>
+
+      {/* Avatar Controls */}
+      {state.avatarReady && (
+        <View style={styles.avatarControls}>
           <Button
-            title={t('avatar.title') || 'Create Avatar'}
-            onPress={() => navigation.navigate('AvatarCreation')}
             variant="primary"
             size="medium"
-            glowEffect={true}
-            style={styles.actionButton}
-          />
-
-          <Button
-            title={t('nav.profile') || 'Profile'}
-            onPress={() => { navigateToAuthFeature('UserProfile'); }}
-            variant="secondary"
-            size="medium"
-            style={styles.actionButton}
-          />
-
-          <Button
-            title={t('auth.logout') || 'Sign Out'}
-            onPress={handleLogout}
-            variant="danger"
-            size="medium"
-            style={styles.actionButton}
-          />
+            onPress={testAvatarSpeech}
+            disabled={state.isSpeaking}
+            style={styles.speakButton}
+            accessibilityLabel="Test avatar speech"
+          >
+            {state.isSpeaking ? '🗣️ Speaking...' : '🎤 Say Hello'}
+          </Button>
         </View>
-      </LinearGradient>
-    </SafeAreaView>
+      )}
+    </View>
+  );
+
+  const renderBottomNavigation = () => (
+    <View style={styles.bottomNav}>
+      <TouchableOpacity 
+        style={styles.navButton}
+        onPress={() => navigateToFeature('SocialFeed')}
+        accessibilityLabel="Social feed"
+      >
+        <Text style={styles.navIcon}>🏠</Text>
+        <Text style={styles.navLabel}>Feed</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navButton}
+        onPress={navigateTo3DScene}
+        accessibilityLabel="Enter 3D world"
+      >
+        <Text style={styles.navIcon}>🌍</Text>
+        <Text style={styles.navLabel}>3D World</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={[styles.navButton, styles.createButton]}
+        onPress={() => navigateToFeature('CreatePost')}
+        accessibilityLabel="Create post"
+      >
+        <View style={styles.createButtonInner}>
+          <Text style={styles.createIcon}>+</Text>
+        </View>
+        <Text style={styles.navLabel}>Create</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navButton}
+        onPress={() => navigateToFeature('Notifications')}
+        accessibilityLabel="Notifications"
+      >
+        <Text style={styles.navIcon}>🔔</Text>
+        <Text style={styles.navLabel}>Alerts</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.navButton}
+        onPress={() => navigateToFeature('UserProfile')}
+        accessibilityLabel="User profile"
+      >
+        <Text style={styles.navIcon}>👤</Text>
+        <Text style={styles.navLabel}>Profile</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ========================================================================================
+  // MAIN RENDER - ENTERPRISE LAYOUT
+  // ========================================================================================
+
+  return (
+    <SafeArea edges={['top', 'bottom']} style={styles.container}>
+      <GradientBackground animated={true}>
+        {/* Header */}
+        {renderHeader()}
+        
+        {/* Avatar Section */}
+        {renderAvatarSection()}
+        
+        {/* Bottom Navigation */}
+        {renderBottomNavigation()}
+
+        {/* Toast Container */}
+        <Toast 
+          visible={state.toastVisible}
+          message={state.toastMessage}
+        />
+      </GradientBackground>
+    </SafeArea>
   );
 };
 
+// ========================================================================================
+// STYLES - TESLA-INSPIRED DESIGN
+// ========================================================================================
+
 const styles = StyleSheet.create({
-  profileButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  container: {
+    flex: 1,
+  },
+  header: {
+    height: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+    zIndex: 10,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  profileIcon: {
+  headerIcon: {
     fontSize: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#00ff88',
-    letterSpacing: 2,
-  },
-  welcomeSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
   },
   avatarSection: {
     flex: 1,
@@ -584,92 +882,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   avatarContainer: {
-    width: '100%',
-    height: 400,
-    borderRadius: 12,
+    width: '85%',        
+    height: '70%',        
+    maxWidth: 400,  
+    maxHeight: 500, 
+    borderRadius: 20,      
     overflow: 'hidden',
     backgroundColor: 'transparent',
     position: 'relative',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
-  container: {
+  webView: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  gradient: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#00ff88',
-    marginBottom: 4,
-  },
-  userText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  languageButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  languageText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  heroSection: {
-    alignItems: 'center',
-    marginBottom: 60,
-    paddingVertical: 40,
-  },
-  heroTitle: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: '#00ff88',
-    letterSpacing: 3,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-    lineHeight: 26,
-    paddingHorizontal: 20,
-  },
-  actionSection: {
-    gap: 20,
-  },
-  actionButton: {
-    marginBottom: 8,
+    width: '100%',
+    height: '100%',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -681,12 +913,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
-  },
-  loadingText: {
-    color: '#00ff88',
-    fontSize: 16,
-    marginTop: 10,
-    fontWeight: '600',
+    borderRadius: 20,
   },
   errorOverlay: {
     position: 'absolute',
@@ -694,39 +921,82 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(40, 10, 10, 0.9)',
+    backgroundColor: 'rgba(20, 20, 20, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
-    padding: 16,
+    padding: 20,
+    borderRadius: 20,
   },
-  errorText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  errorTitle: {
+    textAlign: 'center',
+    marginBottom: 12,
   },
   errorMessage: {
-    color: '#ffffff',
-    fontSize: 14,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
+    lineHeight: 22,
   },
-  tryAgainButton: {
-    backgroundColor: '#00ff88',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  retryButton: {
+    minWidth: 120,
   },
-  tryAgainButtonText: {
-    color: '#000',
+  avatarControls: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  speakButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    height: 80,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  navButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    minWidth: 60,
+  },
+  navIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  navLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  createButton: {
+    position: 'relative',
+  },
+  createButtonInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#00FF85',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    shadowColor: '#00FF85',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  createIcon: {
+    fontSize: 24,
+    color: '#000000',
     fontWeight: 'bold',
   },
-  webView: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-
 });
 
 export default HomeScreen;

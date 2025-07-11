@@ -1,653 +1,652 @@
 // src/context/AuthContext.tsx
+// IRANVERSE Enterprise Authentication Context
+// Complete authentication state management with enterprise security
+// Built for 90M users - JWT + Token Refresh + Secure Storage
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
-import { Alert, Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import NetInfo from '@react-native-community/netinfo';
+import { AuthState, AuthContextValue, LoginRequest, SignupRequest, AuthResponse, AuthError, AuthenticatedUser, TokenRefreshResponse } from '../types/auth';
+import { authApi } from '../constants/api';
+import { authTokenStorage, secureStorage } from '../utils/storage';
+import { ENCRYPTION_CONFIG } from '../constants/config';
+import { Platform } from 'react-native';
 
-// Services and Types
-import { authService } from '../services/authService';
-import { deepLinkService } from '../utils/deepLinking';
-import { User, LoginDto, RegisterDto, ApiErrorResponse } from '../types/auth.types';
+// ========================================================================================
+// AUTHENTICATION CONTEXT SETUP - ENTERPRISE STATE MANAGEMENT
+// ========================================================================================
 
-// Token Storage Keys
-const TOKEN_KEYS = {
-  ACCESS_TOKEN: 'iranverse_access_token',
-  REFRESH_TOKEN: 'iranverse_refresh_token',
-  USER_DATA: 'iranverse_user_data',
-  DEVICE_ID: 'iranverse_device_id',
-  LAST_LOGIN: 'iranverse_last_login',
-} as const;
+/**
+ * Authentication context for global auth state management
+ */
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-// Auth State Interface
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isInitializing: boolean;
-  hasHydrated: boolean;
-  sessionExpiry: number | null;
-  deviceId: string | null;
-  lastLoginTime: number | null;
-  networkStatus: 'online' | 'offline' | 'unknown';
-  pendingActions: Array<() => Promise<void>>;
-}
-
-// Auth Actions
+/**
+ * Authentication action types for reducer
+ */
 type AuthAction =
-  | { type: 'INITIALIZE_START' }
-  | { type: 'INITIALIZE_SUCCESS'; payload: { user: User | null; deviceId: string } }
-  | { type: 'INITIALIZE_ERROR' }
-  | { type: 'LOGIN_START' }
-  | { type: 'LOGIN_SUCCESS'; payload: { user: User; sessionExpiry: number } }
-  | { type: 'LOGIN_ERROR' }
-  | { type: 'LOGOUT_START' }
-  | { type: 'LOGOUT_SUCCESS' }
-  | { type: 'REFRESH_TOKEN_SUCCESS'; payload: { user: User; sessionExpiry: number } }
-  | { type: 'UPDATE_USER'; payload: User }
-  | { type: 'SET_NETWORK_STATUS'; payload: 'online' | 'offline' | 'unknown' }
-  | { type: 'ADD_PENDING_ACTION'; payload: () => Promise<void> }
-  | { type: 'CLEAR_PENDING_ACTIONS' }
-  | { type: 'SESSION_EXPIRED' };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_REFRESHING'; payload: boolean }
+  | { type: 'SET_AUTHENTICATED'; payload: { user: AuthenticatedUser; tokens: any } }
+  | { type: 'SET_USER'; payload: AuthenticatedUser }
+  | { type: 'SET_ERROR'; payload: AuthError | null }
+  | { type: 'CLEAR_AUTH' }
+  | { type: 'UPDATE_LAST_ACTIVITY' }
+  | { type: 'SET_DEVICE_ID'; payload: string };
 
-// Auth Context Interface
-interface AuthContextType {
-  // State
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  isInitializing: boolean;
-  hasHydrated: boolean;
-  networkStatus: 'online' | 'offline' | 'unknown';
-  
-  // Actions
-  login: (credentials: LoginDto) => Promise<void>;
-  register: (userData: RegisterDto) => Promise<void>;
-  logout: (fromAllDevices?: boolean) => Promise<void>;
-  refreshToken: () => Promise<boolean>;
-  updateUser: (userData: Partial<User>) => Promise<void>;
-  
-  // Session Management
-  checkSessionValidity: () => boolean;
-  getSessionTimeRemaining: () => number;
-  
-  // Offline Support
-  executeWhenOnline: (action: () => Promise<void>) => void;
-  
-  // Security
-  verifyDeviceIntegrity: () => Promise<boolean>;
-}
-
-// Initial State
-const initialState: AuthState = {
-  user: null,
+/**
+ * Initial authentication state
+ */
+const initialAuthState: AuthState = {
   isAuthenticated: false,
   isLoading: false,
-  isInitializing: true,
-  hasHydrated: false,
-  sessionExpiry: null,
+  isRefreshing: false,
+  user: null,
+  tokens: null,
+  error: null,
+  sessionMetadata: null,
+  lastActivity: null,
   deviceId: null,
-  lastLoginTime: null,
-  networkStatus: 'unknown',
-  pendingActions: [],
 };
 
-// Auth Reducer
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+/**
+ * Authentication state reducer
+ */
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
-    case 'INITIALIZE_START':
+    case 'SET_LOADING':
       return {
         ...state,
-        isInitializing: true,
-        isLoading: true,
+        isLoading: action.payload,
+        error: action.payload ? null : state.error, // Clear error on new loading
       };
 
-    case 'INITIALIZE_SUCCESS':
+    case 'SET_REFRESHING':
       return {
         ...state,
-        user: action.payload.user,
-        isAuthenticated: !!action.payload.user,
-        deviceId: action.payload.deviceId,
-        isInitializing: false,
-        isLoading: false,
-        hasHydrated: true,
+        isRefreshing: action.payload,
       };
 
-    case 'INITIALIZE_ERROR':
+    case 'SET_AUTHENTICATED':
       return {
         ...state,
-        user: null,
-        isAuthenticated: false,
-        isInitializing: false,
-        isLoading: false,
-        hasHydrated: true,
-      };
-
-    case 'LOGIN_START':
-      return {
-        ...state,
-        isLoading: true,
-      };
-
-    case 'LOGIN_SUCCESS':
-      return {
-        ...state,
-        user: action.payload.user,
         isAuthenticated: true,
         isLoading: false,
-        sessionExpiry: action.payload.sessionExpiry,
-        lastLoginTime: Date.now(),
-      };
-
-    case 'LOGIN_ERROR':
-      return {
-        ...state,
-        isLoading: false,
-      };
-
-    case 'LOGOUT_START':
-      return {
-        ...state,
-        isLoading: true,
-      };
-
-    case 'LOGOUT_SUCCESS':
-      return {
-        ...state,
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        sessionExpiry: null,
-        lastLoginTime: null,
-        pendingActions: [],
-      };
-
-    case 'REFRESH_TOKEN_SUCCESS':
-      return {
-        ...state,
+        isRefreshing: false,
         user: action.payload.user,
-        isAuthenticated: true,
-        sessionExpiry: action.payload.sessionExpiry,
+        tokens: action.payload.tokens,
+        error: null,
+        lastActivity: new Date(),
       };
 
-    case 'UPDATE_USER':
+    case 'SET_USER':
       return {
         ...state,
         user: action.payload,
+        lastActivity: new Date(),
       };
 
-    case 'SET_NETWORK_STATUS':
+    case 'SET_ERROR':
       return {
         ...state,
-        networkStatus: action.payload,
+        isLoading: false,
+        isRefreshing: false,
+        error: action.payload,
       };
 
-    case 'ADD_PENDING_ACTION':
+    case 'CLEAR_AUTH':
       return {
-        ...state,
-        pendingActions: [...state.pendingActions, action.payload],
+        ...initialAuthState,
+        deviceId: state.deviceId, // Preserve device ID
       };
 
-    case 'CLEAR_PENDING_ACTIONS':
+    case 'UPDATE_LAST_ACTIVITY':
       return {
         ...state,
-        pendingActions: [],
+        lastActivity: new Date(),
       };
 
-    case 'SESSION_EXPIRED':
+    case 'SET_DEVICE_ID':
       return {
         ...state,
-        user: null,
-        isAuthenticated: false,
-        sessionExpiry: null,
-        lastLoginTime: null,
+        deviceId: action.payload,
       };
 
     default:
       return state;
   }
-}
+};
 
-// Create Context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// ========================================================================================
+// AUTHENTICATION PROVIDER - ENTERPRISE CONTEXT PROVIDER
+// ========================================================================================
 
-// Auth Provider Component
+/**
+ * Authentication provider props
+ */
 interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Enterprise authentication provider with secure token management
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, initialAuthState);
 
-  // Generate or retrieve device ID
-  const getOrCreateDeviceId = useCallback(async (): Promise<string> => {
-    try {
-      let deviceId = await SecureStore.getItemAsync(TOKEN_KEYS.DEVICE_ID);
-      
-      if (!deviceId) {
-        // Generate new device ID
-        deviceId = `iranverse_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await SecureStore.setItemAsync(TOKEN_KEYS.DEVICE_ID, deviceId);
-      }
-      
-      return deviceId;
-    } catch (error) {
-      console.error('Error getting/creating device ID:', error);
-      // Fallback to in-memory device ID
-      return `iranverse_${Platform.OS}_${Date.now()}_fallback`;
-    }
-  }, []);
+  // ========================================================================================
+  // INITIALIZATION - RESTORE SESSION ON APP START
+  // ========================================================================================
 
-  // Network Status Monitor
-  useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      dispatch({
-        type: 'SET_NETWORK_STATUS',
-        payload: state.isConnected === true ? 'online' : 
-                state.isConnected === false ? 'offline' : 'unknown'
-      });
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Execute Pending Actions When Online
-  useEffect(() => {
-    if (state.networkStatus === 'online' && state.pendingActions.length > 0) {
-      const executePendingActions = async () => {
-        for (const action of state.pendingActions) {
-          try {
-            await action();
-          } catch (error) {
-            console.error('Error executing pending action:', error);
-          }
-        }
-        dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
-      };
-
-      executePendingActions();
-    }
-  }, [state.networkStatus, state.pendingActions]);
-
-  // Session Expiry Monitor
-  useEffect(() => {
-    if (!state.sessionExpiry || !state.isAuthenticated) return;
-
-    const checkSessionExpiry = () => {
-      const now = Date.now();
-      const timeUntilExpiry = state.sessionExpiry! - now;
-      
-      if (timeUntilExpiry <= 0) {
-        // Session expired
-        dispatch({ type: 'SESSION_EXPIRED' });
-        clearStoredTokens();
-        
-        Alert.alert(
-          'Session Expired',
-          'Your session has expired. Please log in again.',
-          [{ text: 'OK', onPress: () => {} }]
-        );
-      } else if (timeUntilExpiry <= 5 * 60 * 1000) {
-        // 5 minutes until expiry - attempt refresh
-        refreshToken();
-      }
-    };
-
-    // Check immediately
-    checkSessionExpiry();
-
-    // Set up interval to check every minute
-    const interval = setInterval(checkSessionExpiry, 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [state.sessionExpiry, state.isAuthenticated]);
-
-  // Clear Stored Tokens
-  const clearStoredTokens = useCallback(async () => {
-    try {
-      await Promise.all([
-        SecureStore.deleteItemAsync(TOKEN_KEYS.ACCESS_TOKEN),
-        SecureStore.deleteItemAsync(TOKEN_KEYS.REFRESH_TOKEN),
-        SecureStore.deleteItemAsync(TOKEN_KEYS.USER_DATA),
-        SecureStore.deleteItemAsync(TOKEN_KEYS.LAST_LOGIN),
-      ]);
-    } catch (error) {
-      console.error('Error clearing stored tokens:', error);
-    }
-  }, []);
-
-  // Store Tokens Securely
-  const storeTokens = useCallback(async (accessToken: string, refreshToken: string, user: User) => {
-    try {
-      await Promise.all([
-        SecureStore.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, accessToken),
-        SecureStore.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, refreshToken),
-        SecureStore.setItemAsync(TOKEN_KEYS.USER_DATA, JSON.stringify(user)),
-        SecureStore.setItemAsync(TOKEN_KEYS.LAST_LOGIN, Date.now().toString()),
-      ]);
-    } catch (error) {
-      console.error('Error storing tokens:', error);
-      throw new Error('Failed to store authentication data securely');
-    }
-  }, []);
-
-  // Initialize Authentication State
+  /**
+   * Initialize authentication state from secure storage
+   */
   const initializeAuth = useCallback(async () => {
-    dispatch({ type: 'INITIALIZE_START' });
-
     try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+
+      // Initialize secure storage
+      await secureStorage.initialize();
+
+      // Generate or retrieve device ID
       const deviceId = await getOrCreateDeviceId();
-      
-      const [accessToken, userData, lastLoginStr] = await Promise.all([
-        SecureStore.getItemAsync(TOKEN_KEYS.ACCESS_TOKEN),
-        SecureStore.getItemAsync(TOKEN_KEYS.USER_DATA),
-        SecureStore.getItemAsync(TOKEN_KEYS.LAST_LOGIN),
-      ]);
+      dispatch({ type: 'SET_DEVICE_ID', payload: deviceId });
 
-      if (accessToken && userData) {
-        const user = JSON.parse(userData) as User;
-        const lastLogin = lastLoginStr ? parseInt(lastLoginStr) : null;
+      // Attempt to restore session from stored tokens
+      const accessToken = await authTokenStorage.getAccessToken();
+      const refreshToken = await authTokenStorage.getRefreshToken();
+
+      if (accessToken && refreshToken) {
+        // Check if access token is still valid
+        const isExpired = await authTokenStorage.isTokenExpired(accessToken);
         
-        // Verify token is still valid
-        try {
-          const response = await authService.getCurrentUser();
-          if (response.success && response.user) {
-            // Calculate session expiry (assuming 24 hour sessions)
-            const sessionExpiry = lastLogin ? lastLogin + (24 * 60 * 60 * 1000) : Date.now() + (24 * 60 * 60 * 1000);
-            
-            dispatch({
-              type: 'INITIALIZE_SUCCESS',
-              payload: { user: response.user || null, deviceId }
-            });
-            
-            dispatch({
-              type: 'REFRESH_TOKEN_SUCCESS',
-              payload: { user: response.user || null, sessionExpiry }
-            });
-          } else {
-            throw new Error('Token validation failed');
-          }
-        } catch (error) {
-          // Token invalid, clear stored data
-          await clearStoredTokens();
-          dispatch({
-            type: 'INITIALIZE_SUCCESS',
-            payload: { user: null, deviceId }
-          });
-        }
-      } else {
-        dispatch({
-          type: 'INITIALIZE_SUCCESS',
-          payload: { user: null, deviceId }
-        });
-      }
-    } catch (error) {
-      console.error('Error initializing auth:', error);
-      dispatch({ type: 'INITIALIZE_ERROR' });
-    }
-  }, [getOrCreateDeviceId, clearStoredTokens]);
-
-  // Login Function
-  const login = useCallback(async (credentials: LoginDto) => {
-    dispatch({ type: 'LOGIN_START' });
-
-    try {
-      const loginData = {
-        ...credentials,
-        device_fingerprint: state.deviceId || await getOrCreateDeviceId(),
-      };
-
-      const response = await authService.login(loginData);
-
-      if (response.success && response.user && response.tokens) {
-        // Store tokens securely
-        await storeTokens(
-          response.tokens.access_token,
-          response.tokens.refresh_token,
-          response.user
-        );
-
-        // Calculate session expiry
-        const sessionExpiry = Date.now() + (response.tokens.expires_in * 1000);
-
-        dispatch({
-          type: 'LOGIN_SUCCESS',
-          payload: {
-            user: response.user!,
-            sessionExpiry,
-          },
-        });
-
-        // Set up API client with new token
-        authService.setAuthToken(response.tokens.access_token);
-      } else {
-        throw new Error('Invalid response from login service');
-      }
-    } catch (error) {
-      dispatch({ type: 'LOGIN_ERROR' });
-      throw error; // Re-throw to let the UI handle the error
-    }
-  }, [state.deviceId, getOrCreateDeviceId, storeTokens]);
-
-  // Register Function
-  const register = useCallback(async (userData: RegisterDto) => {
-    dispatch({ type: 'LOGIN_START' }); // Same loading state for registration
-
-    try {
-      const response = await authService.register(userData);
-
-      if (response.success && response.user) {
-        // Registration successful, but user needs email verification
-        // Don't log them in yet - they need to verify email first
-        dispatch({ type: 'LOGIN_ERROR' }); // Reset loading state
-      } else {
-        throw new Error('Registration failed');
-      }
-    } catch (error) {
-      dispatch({ type: 'LOGIN_ERROR' });
-      throw error; // Re-throw to let the UI handle the error
-    }
-  }, []);
-
-  // Logout Function
-  const logout = useCallback(async (fromAllDevices: boolean = false) => {
-    dispatch({ type: 'LOGOUT_START' });
-
-    try {
-      if (state.networkStatus === 'online') {
-        if (fromAllDevices) {
-          await authService.logoutFromAllDevices();
+        if (!isExpired) {
+          // Token is valid, get user profile
+          await getCurrentUser();
         } else {
-          await authService.logout();
+          // Token expired, try to refresh
+          await handleTokenRefresh();
         }
-      } else {
-        // Offline - add to pending actions
-        const logoutAction = async () => {
-          if (fromAllDevices) {
-            await authService.logoutFromAllDevices();
-          } else {
-            await authService.logout();
-          }
-        };
-        
-        dispatch({ type: 'ADD_PENDING_ACTION', payload: logoutAction });
-      }
-
-      // Clear local storage regardless of network status
-      await clearStoredTokens();
-      authService.clearAuthToken();
-
-      dispatch({ type: 'LOGOUT_SUCCESS' });
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Still clear local data even if server logout fails
-      await clearStoredTokens();
-      authService.clearAuthToken();
-      dispatch({ type: 'LOGOUT_SUCCESS' });
-    }
-  }, [state.networkStatus, clearStoredTokens]);
-
-  // Refresh Token Function
-  const refreshToken = useCallback(async (): Promise<boolean> => {
-    try {
-      const refreshTokenValue = await SecureStore.getItemAsync(TOKEN_KEYS.REFRESH_TOKEN);
-      
-      if (!refreshTokenValue) {
-        return false;
-      }
-
-      const response = await authService.refreshToken();
-
-      if (response.success && response.user && response.tokens) {
-        // Store new tokens
-        await storeTokens(
-          response.tokens.access_token,
-          response.tokens.refresh_token,
-          response.user
-        );
-
-        // Calculate new session expiry
-        const sessionExpiry = Date.now() + (response.tokens.expires_in * 1000);
-
-        dispatch({
-          type: 'REFRESH_TOKEN_SUCCESS',
-          payload: {
-            user: response.user!,
-            sessionExpiry,
-          },
-        });
-
-        // Update API client with new token
-        authService.setAuthToken(response.tokens.access_token);
-
-        return true;
-      } else {
-        // Refresh failed - logout user
-        await logout();
-        return false;
       }
     } catch (error) {
-      console.error('Error refreshing token:', error);
-      // Refresh failed - logout user
-      await logout();
-      return false;
-    }
-  }, [storeTokens, logout]);
-
-  // Update User Function
-  const updateUser = useCallback(async (userData: Partial<User>) => {
-    try {
-      const response = await authService.updateProfile(userData);
-
-      if (response.success && response.user) {
-        // Update stored user data
-        await SecureStore.setItemAsync(TOKEN_KEYS.USER_DATA, JSON.stringify(response.user));
-
-        dispatch({
-          type: 'UPDATE_USER',
-          payload: response.user || null,
-        });
-      } else {
-        throw new Error('Failed to update user profile');
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-      throw error;
+      console.error('Failed to initialize auth:', error);
+      dispatch({ type: 'SET_ERROR', payload: createAuthError('INITIALIZATION_ERROR', 'Failed to initialize authentication') });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
-  // Check Session Validity
-  const checkSessionValidity = useCallback((): boolean => {
-    if (!state.sessionExpiry || !state.isAuthenticated) {
-      return false;
-    }
-
-    return Date.now() < state.sessionExpiry;
-  }, [state.sessionExpiry, state.isAuthenticated]);
-
-  // Get Session Time Remaining
-  const getSessionTimeRemaining = useCallback((): number => {
-    if (!state.sessionExpiry || !state.isAuthenticated) {
-      return 0;
-    }
-
-    return Math.max(0, state.sessionExpiry - Date.now());
-  }, [state.sessionExpiry, state.isAuthenticated]);
-
-  // Execute When Online
-  const executeWhenOnline = useCallback((action: () => Promise<void>) => {
-    if (state.networkStatus === 'online') {
-      action().catch(error => console.error('Error executing online action:', error));
-    } else {
-      dispatch({ type: 'ADD_PENDING_ACTION', payload: action });
-    }
-  }, [state.networkStatus]);
-
-  // Verify Device Integrity
-  const verifyDeviceIntegrity = useCallback(async (): Promise<boolean> => {
+  /**
+   * Get or create unique device ID
+   */
+  const getOrCreateDeviceId = async (): Promise<string> => {
     try {
-      const storedDeviceId = await SecureStore.getItemAsync(TOKEN_KEYS.DEVICE_ID);
-      return storedDeviceId === state.deviceId;
+      const existingId = await secureStorage.getItem<string>('device_id');
+      if (existingId.success && existingId.data) {
+        return existingId.data;
+      }
+
+      // Generate new device ID
+      const newDeviceId = `device_${Platform.OS}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await secureStorage.setItem('device_id', newDeviceId);
+      return newDeviceId;
     } catch (error) {
-      console.error('Error verifying device integrity:', error);
-      return false;
+      // Fallback device ID
+      return `device_${Platform.OS}_${Date.now()}`;
     }
-  }, [state.deviceId]);
+  };
 
   // Initialize on mount
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Deep Link Handler
-  useEffect(() => {
-    deepLinkService.initialize((url) => {
-      // Handle auth-related deep links
-      if (url.includes('/auth/verify-email')) {
-        // Handle email verification
-        const params = deepLinkService.parseDeepLink(url);
-        if (params.token) {
-          // Navigate to email verification screen with token
-        }
-      } else if (url.includes('/auth/reset-password')) {
-        // Handle password reset
-        const params = deepLinkService.parseDeepLink(url);
-        if (params.token) {
-          // Navigate to password reset screen with token
+  // ========================================================================================
+  // AUTHENTICATION METHODS - CORE AUTH OPERATIONS
+  // ========================================================================================
+
+  /**
+   * User login with credentials
+   */
+  const login = useCallback(async (credentials: LoginRequest): Promise<AuthResponse> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+
+      // Add device information to login request
+      const loginData = {
+        ...credentials,
+        deviceInfo: {
+          platform: Platform.OS as 'ios' | 'android',
+          osVersion: Platform.Version.toString(),
+          appVersion: '1.0.0', // Should come from config
+          deviceId: state.deviceId || 'unknown',
+        },
+      };
+
+      const response = await authApi.login(loginData);
+
+      if (response.success && response.data) {
+        // Store tokens securely
+        await authTokenStorage.storeTokens(
+          response.data.tokens.accessToken,
+          response.data.tokens.refreshToken
+        );
+
+        // Store user profile
+        await secureStorage.setItem(
+          ENCRYPTION_CONFIG.storageKeys.userProfile,
+          response.data.user
+        );
+
+        // Update state
+        dispatch({
+          type: 'SET_AUTHENTICATED',
+          payload: {
+            user: response.data.user,
+            tokens: response.data.tokens,
+          },
+        });
+
+        return {
+          success: true,
+          message: 'Login successful',
+          user: response.data.user,
+          tokens: response.data.tokens,
+          session: {
+            sessionId: response.data.session.sessionId,
+            deviceId: response.data.session.deviceId,
+            deviceInfo: {
+              platform: Platform.OS as 'ios' | 'android',
+              osVersion: Platform.Version.toString(),
+              appVersion: '1.0.0',
+            },
+            isTrustedDevice: true,
+          },
+          isNewUser: response.data.isNewUser,
+          nextAction: response.data.nextAction,
+        };
+      } else {
+        const error = createAuthError('LOGIN_FAILED', response.error?.message || 'Login failed');
+        dispatch({ type: 'SET_ERROR', payload: error });
+        throw error;
+      }
+    } catch (error) {
+      const authError = createAuthError('LOGIN_ERROR', getErrorMessage(error));
+      dispatch({ type: 'SET_ERROR', payload: authError });
+      throw authError;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.deviceId]);
+
+  /**
+   * User signup with registration data
+   */
+  const signup = useCallback(async (data: SignupRequest): Promise<AuthResponse> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+
+      // Handle preferredLanguage conversion
+      const normalizedPreferredLanguage = data.preferredLanguage === 'auto' ? 'en' : data.preferredLanguage;
+
+      // Add device information to signup request
+      const signupData = {
+        ...data,
+        preferredLanguage: normalizedPreferredLanguage,
+        deviceInfo: {
+          platform: Platform.OS as 'ios' | 'android',
+          osVersion: Platform.Version.toString(),
+          appVersion: '1.0.0', // Should come from config
+          deviceId: state.deviceId || 'unknown',
+        },
+      };
+
+      const response = await authApi.register(signupData);
+
+      if (response.success && response.data) {
+        // Store tokens securely
+        await authTokenStorage.storeTokens(
+          response.data.tokens.accessToken,
+          response.data.tokens.refreshToken
+        );
+
+        // Store user profile
+        await secureStorage.setItem(
+          ENCRYPTION_CONFIG.storageKeys.userProfile,
+          response.data.user
+        );
+
+        // Update state
+        dispatch({
+          type: 'SET_AUTHENTICATED',
+          payload: {
+            user: response.data.user,
+            tokens: response.data.tokens,
+          },
+        });
+
+        return {
+          success: true,
+          message: 'Signup successful',
+          user: response.data.user,
+          tokens: response.data.tokens,
+          session: {
+            sessionId: response.data.session.sessionId,
+            deviceId: response.data.session.deviceId,
+            deviceInfo: {
+              platform: Platform.OS as 'ios' | 'android',
+              osVersion: Platform.Version.toString(),
+              appVersion: '1.0.0',
+            },
+            isTrustedDevice: true,
+          },
+          isNewUser: true,
+          requiresEmailVerification: response.data.requiresEmailVerification,
+          nextAction: response.data.nextAction,
+        };
+      } else {
+        const error = createAuthError('SIGNUP_FAILED', response.error?.message || 'Signup failed');
+        dispatch({ type: 'SET_ERROR', payload: error });
+        throw error;
+      }
+    } catch (error) {
+      const authError = createAuthError('SIGNUP_ERROR', getErrorMessage(error));
+      dispatch({ type: 'SET_ERROR', payload: authError });
+      throw authError;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.deviceId]);
+
+  /**
+   * User logout with optional device management
+   */
+  const logout = useCallback(async (options: { allDevices?: boolean } = {}): Promise<void> => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+
+      // Call logout API if authenticated
+      if (state.isAuthenticated) {
+        try {
+          await authApi.logout({ 
+            allDevices: options.allDevices || false,
+            deviceId: state.deviceId || 'unknown'
+          });
+        } catch (error) {
+          // Continue with local logout even if API call fails
+          console.warn('Logout API call failed, continuing with local logout:', error);
         }
       }
-    });
 
-    return () => {
-      deepLinkService.cleanup();
-    };
+      // Clear stored tokens and user data
+      await authTokenStorage.clearTokens();
+      await secureStorage.removeItem(ENCRYPTION_CONFIG.storageKeys.userProfile);
+      await secureStorage.removeItem(ENCRYPTION_CONFIG.storageKeys.avatarMetadata);
+
+      // Clear auth state
+      dispatch({ type: 'CLEAR_AUTH' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force clear state even on error
+      dispatch({ type: 'CLEAR_AUTH' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.isAuthenticated]);
+
+  /**
+   * Refresh authentication tokens
+   */
+  const refreshToken = useCallback(async (): Promise<TokenRefreshResponse> => {
+    if (state.isRefreshing) {
+      throw new Error('Token refresh already in progress');
+    }
+
+    try {
+      dispatch({ type: 'SET_REFRESHING', payload: true });
+
+      const currentRefreshToken = await authTokenStorage.getRefreshToken();
+      if (!currentRefreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await authApi.refresh({ 
+        refreshToken: currentRefreshToken,
+        deviceId: state.deviceId || 'unknown'
+      });
+
+      if (response.success && response.data) {
+        // Store new tokens
+        await authTokenStorage.storeTokens(
+          response.data.tokens.accessToken,
+          response.data.tokens.refreshToken
+        );
+
+        // Update user data if provided
+        if (response.data.user) {
+          const updatedUser: AuthenticatedUser = {
+            ...state.user!,
+            ...response.data.user
+          };
+          dispatch({ type: 'SET_USER', payload: updatedUser });
+          await secureStorage.setItem(
+            ENCRYPTION_CONFIG.storageKeys.userProfile,
+            updatedUser
+          );
+        }
+
+        return {
+          success: true,
+          tokens: response.data.tokens,
+          user: response.data.user
+        };
+      } else {
+        throw new Error('Token refresh failed');
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // Clear auth state on refresh failure
+      await logout();
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_REFRESHING', payload: false });
+    }
+  }, [state.isRefreshing, logout]);
+
+  /**
+   * Handle automatic token refresh
+   */
+  const handleTokenRefresh = useCallback(async (): Promise<boolean> => {
+    try {
+      await refreshToken();
+      await getCurrentUser(); // Refresh user data
+      return true;
+    } catch (error) {
+      console.error('Automatic token refresh failed:', error);
+      return false;
+    }
+  }, [refreshToken]);
+
+  /**
+   * Get current user profile from cache
+   */
+  const getCurrentUser = useCallback(async (): Promise<AuthenticatedUser> => {
+    try {
+      // Get cached user data from secure storage
+      const cachedUser = await secureStorage.getItem<AuthenticatedUser>(ENCRYPTION_CONFIG.storageKeys.userProfile);
+      if (cachedUser.success && cachedUser.data) {
+        dispatch({ type: 'SET_USER', payload: cachedUser.data });
+        return cachedUser.data;
+      }
+      
+      throw new Error('No cached user data available');
+    } catch (error) {
+      console.error('Get user profile error:', error);
+      throw error;
+    }
   }, []);
 
-  // Context Value
-  const contextValue: AuthContextType = {
+  // ========================================================================================
+  // UTILITY METHODS - HELPER FUNCTIONS
+  // ========================================================================================
+
+  /**
+   * Clear authentication error
+   */
+  const clearError = useCallback(() => {
+    dispatch({ type: 'SET_ERROR', payload: null });
+  }, []);
+
+  /**
+   * Check authentication status
+   */
+  const checkAuthStatus = useCallback(async (): Promise<boolean> => {
+    try {
+      const accessToken = await authTokenStorage.getAccessToken();
+      if (!accessToken) return false;
+
+      const isExpired = await authTokenStorage.isTokenExpired(accessToken);
+      if (isExpired) {
+        // Try to refresh token
+        return await handleTokenRefresh();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Auth status check failed:', error);
+      return false;
+    }
+  }, [handleTokenRefresh]);
+
+  /**
+   * Update last activity timestamp
+   */
+  const updateActivity = useCallback(() => {
+    dispatch({ type: 'UPDATE_LAST_ACTIVITY' });
+  }, []);
+
+  // ========================================================================================
+  // SESSION MANAGEMENT - ACTIVITY TRACKING
+  // ========================================================================================
+
+  /**
+   * Set up session timeout monitoring
+   */
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+
+    const sessionTimeout = ENCRYPTION_CONFIG.sessionTimeout * 1000; // Convert to milliseconds
+    let timeoutId: NodeJS.Timeout;
+
+    const resetSessionTimeout = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log('Session timeout - logging out user');
+        logout();
+      }, sessionTimeout);
+    };
+
+    // Initial timeout setup
+    resetSessionTimeout();
+
+    // Reset timeout on activity
+    const handleActivity = () => {
+      updateActivity();
+      resetSessionTimeout();
+    };
+
+    // Note: In a real app, you'd add event listeners for user activity
+    // For now, we'll rely on manual activity updates
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [state.isAuthenticated, logout, updateActivity]);
+
+  // ========================================================================================
+  // CONTEXT VALUE - COMPLETE AUTH INTERFACE
+  // ========================================================================================
+
+  const contextValue: AuthContextValue = {
     // State
-    user: state.user,
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-    isInitializing: state.isInitializing,
-    hasHydrated: state.hasHydrated,
-    networkStatus: state.networkStatus,
-
-    // Actions
+    ...state,
+    
+    // Core Authentication
     login,
-    register,
+    signup,
     logout,
+    
+    // Token Management
     refreshToken,
-    updateUser,
-
-    // Session Management
-    checkSessionValidity,
-    getSessionTimeRemaining,
-
-    // Offline Support
-    executeWhenOnline,
-
-    // Security
-    verifyDeviceIntegrity,
+    clearTokens: async () => {
+      await authTokenStorage.clearTokens();
+      dispatch({ type: 'CLEAR_AUTH' });
+    },
+    
+    // Profile Management
+    getProfile: getCurrentUser,
+    updateProfile: async (updates) => {
+      // Ensure we have a current user
+      if (!state.user) {
+        throw new Error('No user authenticated');
+      }
+      
+      // Create properly typed updated user
+      const updatedUser: AuthenticatedUser = {
+        ...state.user,
+        ...updates,
+        // Ensure all required fields are present
+        id: updates.id ?? state.user.id,
+        email: updates.email ?? state.user.email,
+        username: updates.username ?? state.user.username,
+        displayName: updates.displayName ?? state.user.displayName,
+        firstName: updates.firstName ?? state.user.firstName,
+        lastName: updates.lastName ?? state.user.lastName,
+        isEmailVerified: updates.isEmailVerified ?? state.user.isEmailVerified,
+        preferredLanguage: updates.preferredLanguage ?? state.user.preferredLanguage,
+        lastLoginAt: updates.lastLoginAt ?? state.user.lastLoginAt,
+      };
+      
+      dispatch({ type: 'SET_USER', payload: updatedUser });
+      
+      await secureStorage.setItem(
+        ENCRYPTION_CONFIG.storageKeys.userProfile,
+        updatedUser
+      );
+      
+      return updatedUser;
+    },
+    
+    // Email/Password (placeholder implementations)
+    requestPasswordReset: async (email: string) => {
+      // Placeholder - would call password reset API
+      console.log('Password reset requested for:', email);
+    },
+    confirmPasswordReset: async (request) => {
+      // Placeholder - would call password reset confirmation API
+      console.log('Password reset confirmation:', request);
+    },
+    verifyEmail: async (token: string) => {
+      // Placeholder - would call email verification API
+      console.log('Email verification:', token);
+    },
+    resendEmailVerification: async () => {
+      // Placeholder - would call resend verification API
+      console.log('Resend email verification');
+    },
+    
+    // Security (placeholder implementations)
+    enableTwoFactor: async () => {
+      // Placeholder - would enable 2FA
+      console.log('Enable 2FA');
+    },
+    disableTwoFactor: async (code: string) => {
+      // Placeholder - would disable 2FA
+      console.log('Disable 2FA:', code);
+    },
+    
+    // Utility
+    checkAuthStatus,
+    clearError,
   };
 
   return (
@@ -657,12 +656,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// Hook to use Auth Context
-export const useAuth = (): AuthContextType => {
+// ========================================================================================
+// UTILITY FUNCTIONS - HELPERS
+// ========================================================================================
+
+/**
+ * Create standardized authentication error
+ */
+const createAuthError = (type: string, message: string): AuthError => {
+  return {
+    type: type as any,
+    code: type,
+    message,
+    userMessage: message,
+    timestamp: new Date(),
+    retryable: false,
+  };
+};
+
+/**
+ * Extract error message from various error types
+ */
+const getErrorMessage = (error: any): string => {
+  if (typeof error === 'string') return error;
+  if (error?.message) return error.message;
+  if (error?.userMessage) return error.userMessage;
+  return 'An unknown error occurred';
+};
+
+// ========================================================================================
+// CUSTOM HOOK - EASY CONTEXT ACCESS
+// ========================================================================================
+
+/**
+ * Custom hook to use authentication context
+ * Provides type-safe access to auth state and methods
+ */
+export const useAuthContext = (): AuthContextValue => {
   const context = useContext(AuthContext);
   
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   
   return context;

@@ -1,617 +1,913 @@
 // src/utils/validation.ts
+// IRANVERSE Enterprise Form Validation
+// Comprehensive validation system with Persian/RTL support
+// Built for 90M users - RFC Compliant + Cultural Sensitivity
+import { ValidationError } from '../types/api';
+
+// ========================================================================================
+// VALIDATION RESULT TYPES - ENTERPRISE STANDARDS
+// ========================================================================================
+
 /**
- * IRANVERSE Validation Utilities
- * Enterprise-grade form validation with Persian/Farsi support
- * Iranian market specific validations and patterns
+ * Individual field validation result
  */
-
-import { ValidationResult, FormFieldValidation, RegisterDto, LoginDto } from '../types/auth.types';
-
-// ==================== VALIDATION PATTERNS ====================
-
-export const VALIDATION_PATTERNS = {
-  EMAIL: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/,
-  USERNAME: /^[a-zA-Z0-9_]{3,30}$/,
-  PHONE_IRAN: /^(\+98|0)?9\d{9}$/,
-  PHONE_INTERNATIONAL: /^\+?[1-9]\d{1,14}$/,
-  IRANIAN_NATIONAL_ID: /^\d{10}$/,
-  PERSIAN_CHARS: /[\u0600-\u06FF]/,
-  ENGLISH_CHARS: /[A-Za-z]/,
-  NUMBERS: /\d/,
-  SPECIAL_CHARS: /[^A-Za-z0-9\u0600-\u06FF]/,
-  URL: /^https?:\/\/.+\..+/,
-  DATE_ISO: /^\d{4}-\d{2}-\d{2}$/,
-} as const;
-
-// ==================== VALIDATION MESSAGES ====================
-
-export const VALIDATION_MESSAGES = {
-  EN: {
-    REQUIRED: 'This field is required',
-    EMAIL_INVALID: 'Please enter a valid email address',
-    EMAIL_REQUIRED: 'Email address is required',
-    PASSWORD_REQUIRED: 'Password is required',
-    PASSWORD_MIN_LENGTH: 'Password must be at least {min} characters',
-    PASSWORD_MAX_LENGTH: 'Password cannot exceed {max} characters',
-    PASSWORD_WEAK: 'Password is too weak. Include uppercase, lowercase, numbers, and symbols',
-    PASSWORD_NO_MATCH: 'Passwords do not match',
-    USERNAME_INVALID: 'Username can only contain letters, numbers, and underscores',
-    USERNAME_MIN_LENGTH: 'Username must be at least {min} characters',
-    USERNAME_MAX_LENGTH: 'Username cannot exceed {max} characters',
-    PHONE_INVALID: 'Please enter a valid phone number',
-    PHONE_IRAN_INVALID: 'Please enter a valid Iranian mobile number (09xxxxxxxxx)',
-    NAME_REQUIRED: 'Name is required',
-    NAME_MIN_LENGTH: 'Name must be at least {min} characters',
-    NAME_MAX_LENGTH: 'Name cannot exceed {max} characters',
-    AGE_MINIMUM: 'You must be at least {min} years old',
-    AGE_MAXIMUM: 'Age cannot exceed {max} years',
-    DATE_INVALID: 'Please enter a valid date',
-    TERMS_REQUIRED: 'You must accept the terms and conditions',
-    PRIVACY_REQUIRED: 'You must accept the privacy policy',
-    NATIONAL_ID_INVALID: 'Please enter a valid Iranian national ID',
-    URL_INVALID: 'Please enter a valid URL',
-    CHARACTERS_ONLY: 'Only letters are allowed',
-    NUMBERS_ONLY: 'Only numbers are allowed',
-    NO_SPECIAL_CHARS: 'Special characters are not allowed',
-    MIXED_LANGUAGE: 'Please use either English or Persian characters, not both',
-  },
-  FA: {
-    REQUIRED: 'این فیلد اجباری است',
-    EMAIL_INVALID: 'لطفاً آدرس ایمیل معتبری وارد کنید',
-    EMAIL_REQUIRED: 'آدرس ایمیل الزامی است',
-    PASSWORD_REQUIRED: 'رمز عبور الزامی است',
-    PASSWORD_MIN_LENGTH: 'رمز عبور باید حداقل {min} کاراکتر باشد',
-    PASSWORD_MAX_LENGTH: 'رمز عبور نمی‌تواند بیش از {max} کاراکتر باشد',
-    PASSWORD_WEAK: 'رمز عبور ضعیف است. شامل حروف بزرگ، کوچک، اعداد و نمادها باشد',
-    PASSWORD_NO_MATCH: 'رمزهای عبور مطابقت ندارند',
-    USERNAME_INVALID: 'نام کاربری فقط می‌تواند شامل حروف، اعداد و خط زیر باشد',
-    USERNAME_MIN_LENGTH: 'نام کاربری باید حداقل {min} کاراکتر باشد',
-    USERNAME_MAX_LENGTH: 'نام کاربری نمی‌تواند بیش از {max} کاراکتر باشد',
-    PHONE_INVALID: 'لطفاً شماره تلفن معتبری وارد کنید',
-    PHONE_IRAN_INVALID: 'لطفاً شماره موبایل ایرانی معتبری وارد کنید (۰۹xxxxxxxxx)',
-    NAME_REQUIRED: 'نام الزامی است',
-    NAME_MIN_LENGTH: 'نام باید حداقل {min} کاراکتر باشد',
-    NAME_MAX_LENGTH: 'نام نمی‌تواند بیش از {max} کاراکتر باشد',
-    AGE_MINIMUM: 'شما باید حداقل {min} سال سن داشته باشید',
-    AGE_MAXIMUM: 'سن نمی‌تواند بیش از {max} سال باشد',
-    DATE_INVALID: 'لطفاً تاریخ معتبری وارد کنید',
-    TERMS_REQUIRED: 'باید شرایط و قوانین را بپذیرید',
-    PRIVACY_REQUIRED: 'باید سیاست حفظ حریم خصوصی را بپذیرید',
-    NATIONAL_ID_INVALID: 'لطفاً کد ملی ایرانی معتبری وارد کنید',
-    URL_INVALID: 'لطفاً آدرس اینترنتی معتبری وارد کنید',
-    CHARACTERS_ONLY: 'فقط حروف مجاز هستند',
-    NUMBERS_ONLY: 'فقط اعداد مجاز هستند',
-    NO_SPECIAL_CHARS: 'کاراکترهای خاص مجاز نیستند',
-    MIXED_LANGUAGE: 'لطفاً فقط از حروف انگلیسی یا فارسی استفاده کنید، نه هر دو',
-  },
-} as const;
-
-// ==================== VALIDATION CONFIGURATION ====================
-
-export interface ValidationConfig {
-  language: 'en' | 'fa';
-  iranianMode: boolean;
-  strictMode: boolean;
-  customPatterns?: Record<string, RegExp>;
-  customMessages?: Record<string, string>;
+export interface FieldValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  warnings?: ValidationError[];
 }
 
-const DEFAULT_CONFIG: ValidationConfig = {
-  language: 'en',
-  iranianMode: true,
-  strictMode: false,
+/**
+ * Complete form validation result
+ */
+export interface FormValidationResult {
+  isValid: boolean;
+  fieldResults: Record<string, FieldValidationResult>;
+  globalErrors: ValidationError[];
+}
+
+/**
+ * Validation configuration options
+ */
+export interface ValidationOptions {
+  // Language & Localization
+  language?: 'en' | 'fa';
+  rtl?: boolean;
+  
+  // Validation Strictness
+  strict?: boolean;
+  allowEmptyOptional?: boolean;
+  
+  // Persian-Specific Options
+  allowPersianCharacters?: boolean;
+  requirePersianName?: boolean;
+  
+  // Security Options
+  checkCommonPasswords?: boolean;
+  allowWeakPasswords?: boolean;
+  
+  // Real-time Options
+  debounceMs?: number;
+  showWarnings?: boolean;
+}
+
+// ========================================================================================
+// EMAIL VALIDATION - RFC 5322 COMPLIANT
+// ========================================================================================
+
+/**
+ * Comprehensive email validation with RFC 5322 compliance
+ * Supports international domains and Persian email providers
+ */
+export const validateEmail = (
+  email: string,
+  options: ValidationOptions = {}
+): FieldValidationResult => {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
+
+  // Basic null/empty check
+  if (!email || typeof email !== 'string') {
+    errors.push(createValidationError(
+      'email',
+      'REQUIRED',
+      'Email is required',
+      'ایمیل الزامی است',
+      options.language
+    ));
+    return { isValid: false, errors, warnings };
+  }
+
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // Length validation
+  if (trimmedEmail.length === 0) {
+    errors.push(createValidationError(
+      'email',
+      'REQUIRED',
+      'Email cannot be empty',
+      'ایمیل نمی‌تواند خالی باشد',
+      options.language
+    ));
+    return { isValid: false, errors, warnings };
+  }
+
+  if (trimmedEmail.length > 254) {
+    errors.push(createValidationError(
+      'email',
+      'TOO_LONG',
+      'Email address is too long (maximum 254 characters)',
+      'آدرس ایمیل خیلی طولانی است (حداکثر ۲۵۴ کاراکتر)',
+      options.language
+    ));
+  }
+
+  // RFC 5322 regex pattern (simplified but comprehensive)
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(trimmedEmail)) {
+    errors.push(createValidationError(
+      'email',
+      'INVALID_FORMAT',
+      'Please enter a valid email address',
+      'لطفاً آدرس ایمیل معتبری وارد کنید',
+      options.language
+    ));
+  }
+
+  // Check for consecutive dots
+  if (trimmedEmail.includes('..')) {
+    errors.push(createValidationError(
+      'email',
+      'INVALID_FORMAT',
+      'Email cannot contain consecutive dots',
+      'ایمیل نمی‌تواند شامل نقطه‌های متوالی باشد',
+      options.language
+    ));
+  }
+
+  // Check for invalid starting/ending characters
+  if (trimmedEmail.startsWith('.') || trimmedEmail.endsWith('.')) {
+    errors.push(createValidationError(
+      'email',
+      'INVALID_FORMAT',
+      'Email cannot start or end with a dot',
+      'ایمیل نمی‌تواند با نقطه شروع یا تمام شود',
+      options.language
+    ));
+  }
+
+  // Local part validation (before @)
+  const [localPart, domainPart] = trimmedEmail.split('@');
+  
+  if (localPart.length > 64) {
+    errors.push(createValidationError(
+      'email',
+      'INVALID_LOCAL_PART',
+      'Email local part is too long (maximum 64 characters)',
+      'بخش محلی ایمیل خیلی طولانی است (حداکثر ۶۴ کاراکتر)',
+      options.language
+    ));
+  }
+
+  // Domain validation
+  if (domainPart && domainPart.length > 253) {
+    errors.push(createValidationError(
+      'email',
+      'INVALID_DOMAIN',
+      'Email domain is too long',
+      'دامنه ایمیل خیلی طولانی است',
+      options.language
+    ));
+  }
+
+  // Iranian email providers check (for warnings)
+  const iranianProviders = ['gmail.com', 'yahoo.com', 'chmail.ir', 'mail.ir', 'iranmail.com'];
+  const isIranianProvider = iranianProviders.some(provider => trimmedEmail.endsWith(`@${provider}`));
+  
+  if (!isIranianProvider && options.language === 'fa') {
+    warnings.push(createValidationError(
+      'email',
+      'NON_IRANIAN_PROVIDER',
+      'Consider using an Iranian email provider for better local support',
+      'برای پشتیبانی بهتر محلی، استفاده از ارائه‌دهنده ایمیل ایرانی را در نظر بگیرید',
+      options.language,
+      'warning'
+    ));
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: options.showWarnings ? warnings : undefined,
+  };
 };
 
-// ==================== UTILITY FUNCTIONS ====================
+// ========================================================================================
+// PASSWORD VALIDATION - ENTERPRISE SECURITY
+// ========================================================================================
 
 /**
- * Format validation message with parameters
+ * Enterprise-grade password validation with security scoring
+ * Supports Persian characters and cultural password patterns
  */
-export function formatMessage(
-  message: string, 
-  params: Record<string, string | number> = {}
-): string {
-  return Object.entries(params).reduce(
-    (msg, [key, value]) => msg.replace(`{${key}}`, String(value)),
-    message
-  );
-}
+export const validatePassword = (
+  password: string,
+  options: ValidationOptions = {}
+): FieldValidationResult => {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
 
-/**
- * Get validation message in specified language
- */
-export function getValidationMessage(
-  key: keyof typeof VALIDATION_MESSAGES.EN,
-  language: 'en' | 'fa' = 'en',
-  params: Record<string, string | number> = {}
-): string {
-  const messages = VALIDATION_MESSAGES[language.toUpperCase() as 'EN' | 'FA'];
-  const message = messages[key] || VALIDATION_MESSAGES.EN[key];
-  return formatMessage(message, params);
-}
-
-/**
- * Detect if text contains Persian characters
- */
-export function containsPersian(text: string): boolean {
-  return VALIDATION_PATTERNS.PERSIAN_CHARS.test(text);
-}
-
-/**
- * Detect if text contains English characters
- */
-export function containsEnglish(text: string): boolean {
-  return VALIDATION_PATTERNS.ENGLISH_CHARS.test(text);
-}
-
-/**
- * Check if text has mixed languages
- */
-export function hasMixedLanguages(text: string): boolean {
-  return containsPersian(text) && containsEnglish(text);
-}
-
-/**
- * Validate Iranian National ID using checksum algorithm
- */
-export function validateIranianNationalId(nationalId: string): boolean {
-  if (!nationalId || !VALIDATION_PATTERNS.IRANIAN_NATIONAL_ID.test(nationalId)) {
-    return false;
+  // Basic null/empty check
+  if (!password || typeof password !== 'string') {
+    errors.push(createValidationError(
+      'password',
+      'REQUIRED',
+      'Password is required',
+      'رمز عبور الزامی است',
+      options.language
+    ));
+    return { isValid: false, errors, warnings };
   }
 
-  // Check for repeated digits
-  if (/^(\d)\1{9}$/.test(nationalId)) {
-    return false;
+  // Length validation
+  if (password.length < 8) {
+    errors.push(createValidationError(
+      'password',
+      'TOO_SHORT',
+      'Password must be at least 8 characters long',
+      'رمز عبور باید حداقل ۸ کاراکتر باشد',
+      options.language
+    ));
   }
 
-  // Calculate checksum
-  const digits = nationalId.split('').map(Number);
-  const checksum = digits.slice(0, 9).reduce((sum, digit, index) => {
-    return sum + digit * (10 - index);
-  }, 0) % 11;
-
-  const lastDigit = digits[9];
-  
-  if (checksum < 2) {
-    return lastDigit === checksum;
-  } else {
-    return lastDigit === 11 - checksum;
+  if (password.length > 128) {
+    errors.push(createValidationError(
+      'password',
+      'TOO_LONG',
+      'Password is too long (maximum 128 characters)',
+      'رمز عبور خیلی طولانی است (حداکثر ۱۲۸ کاراکتر)',
+      options.language
+    ));
   }
-}
 
-/**
- * Calculate password strength score (0-100)
- */
-export function calculatePasswordStrength(password: string): number {
-  if (!password) return 0;
+  // Character complexity validation
+  const hasLowercase = /[a-z]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasSymbols = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  const hasPersianChars = /[\u0600-\u06FF]/.test(password);
 
-  let score = 0;
-  const length = password.length;
+  // English character requirements (unless allowing Persian-only)
+  if (!options.allowPersianCharacters || !hasPersianChars) {
+    if (!hasLowercase) {
+      errors.push(createValidationError(
+        'password',
+        'MISSING_LOWERCASE',
+        'Password must contain at least one lowercase letter',
+        'رمز عبور باید حداقل یک حرف کوچک انگلیسی داشته باشد',
+        options.language
+      ));
+    }
 
-  // Length scoring (0-40 points)
-  if (length >= 8) score += 10;
-  if (length >= 12) score += 10;
-  if (length >= 16) score += 10;
-  if (length >= 20) score += 10;
+    if (!hasUppercase) {
+      errors.push(createValidationError(
+        'password',
+        'MISSING_UPPERCASE',
+        'Password must contain at least one uppercase letter',
+        'رمز عبور باید حداقل یک حرف بزرگ انگلیسی داشته باشد',
+        options.language
+      ));
+    }
+  }
 
-  // Character variety (0-40 points)
-  if (/[a-z]/.test(password)) score += 5;
-  if (/[A-Z]/.test(password)) score += 5;
-  if (/[0-9]/.test(password)) score += 10;
-  if (/[^A-Za-z0-9]/.test(password)) score += 15;
-  if (containsPersian(password)) score += 5; // Persian characters bonus
+  if (!hasNumbers) {
+    errors.push(createValidationError(
+      'password',
+      'MISSING_NUMBERS',
+      'Password must contain at least one number',
+      'رمز عبور باید حداقل یک عدد داشته باشد',
+      options.language
+    ));
+  }
 
-  // Pattern complexity (0-20 points)
-  const patterns = [
-    /(.)\1{2,}/, // Repeated characters
-    /123|234|345|456|567|678|789|890/, // Sequential numbers
-    /abc|bcd|cde|def|efg|fgh|ghi|hij/, // Sequential letters
-    /password|123456|qwerty|admin/i, // Common passwords
+  if (!hasSymbols && !hasPersianChars) {
+    errors.push(createValidationError(
+      'password',
+      'MISSING_SYMBOLS',
+      'Password must contain at least one special character',
+      'رمز عبور باید حداقل یک کاراکتر ویژه داشته باشد',
+      options.language
+    ));
+  }
+
+  // Common password patterns
+  const commonPatterns = [
+    /^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9]+$/, // Only letters and numbers
+    /(.)\1{2,}/, // Repeated characters (3+ times)
+    /^[0-9]+$/, // Only numbers
+    /^[a-zA-Z]+$/, // Only letters
   ];
 
-  let patternPenalty = 0;
-  patterns.forEach(pattern => {
-    if (pattern.test(password.toLowerCase())) patternPenalty += 5;
-  });
-
-  score = Math.max(0, score - patternPenalty);
-
-  // Bonus for mixed scripts (English + Persian)
-  if (containsPersian(password) && containsEnglish(password)) {
-    score += 10;
-  }
-
-  return Math.min(100, score);
-}
-
-/**
- * Get password strength level
- */
-export function getPasswordStrengthLevel(score: number): 'weak' | 'medium' | 'strong' | 'ultra' {
-  if (score >= 80) return 'ultra';
-  if (score >= 60) return 'strong';
-  if (score >= 40) return 'medium';
-  return 'weak';
-}
-
-// ==================== FIELD VALIDATORS ====================
-
-/**
- * Email validation
- */
-export function validateEmail(
-  email: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (!email || !email.trim()) {
-    errors.email = getValidationMessage('EMAIL_REQUIRED', language);
-  } else if (!VALIDATION_PATTERNS.EMAIL.test(email.trim())) {
-    errors.email = getValidationMessage('EMAIL_INVALID', language);
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-/**
- * Password validation
- */
-export function validatePassword(
-  password: string,
-  confirmPassword?: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en', strictMode = false } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-  const warnings: Record<string, string> = {};
-
-  if (!password) {
-    errors.password = getValidationMessage('PASSWORD_REQUIRED', language);
-  } else {
-    if (password.length < 8) {
-      errors.password = getValidationMessage('PASSWORD_MIN_LENGTH', language, { min: 8 });
-    } else if (password.length > 128) {
-      errors.password = getValidationMessage('PASSWORD_MAX_LENGTH', language, { max: 128 });
-    }
-
-    // Strength validation
-    const strength = calculatePasswordStrength(password);
-    const strengthLevel = getPasswordStrengthLevel(strength);
-
-    if (strictMode && strengthLevel === 'weak') {
-      errors.password = getValidationMessage('PASSWORD_WEAK', language);
-    } else if (strengthLevel === 'weak' || strengthLevel === 'medium') {
-      warnings.password = getValidationMessage('PASSWORD_WEAK', language);
-    }
-  }
-
-  // Confirm password validation
-  if (confirmPassword !== undefined) {
-    if (password !== confirmPassword) {
-      errors.confirmPassword = getValidationMessage('PASSWORD_NO_MATCH', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings,
-    score: password ? calculatePasswordStrength(password) : 0,
-  };
-}
-
-/**
- * Username validation
- */
-export function validateUsername(
-  username: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (username && username.trim()) {
-    const trimmed = username.trim();
-    
-    if (trimmed.length < 3) {
-      errors.username = getValidationMessage('USERNAME_MIN_LENGTH', language, { min: 3 });
-    } else if (trimmed.length > 30) {
-      errors.username = getValidationMessage('USERNAME_MAX_LENGTH', language, { max: 30 });
-    } else if (!VALIDATION_PATTERNS.USERNAME.test(trimmed)) {
-      errors.username = getValidationMessage('USERNAME_INVALID', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-/**
- * Phone number validation
- */
-export function validatePhone(
-  phone: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en', iranianMode = true } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (phone && phone.trim()) {
-    const cleaned = phone.replace(/\s/g, '');
-    
-    if (iranianMode) {
-      if (!VALIDATION_PATTERNS.PHONE_IRAN.test(cleaned)) {
-        errors.phone = getValidationMessage('PHONE_IRAN_INVALID', language);
-      }
-    } else {
-      if (!VALIDATION_PATTERNS.PHONE_INTERNATIONAL.test(cleaned)) {
-        errors.phone = getValidationMessage('PHONE_INVALID', language);
-      }
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-/**
- * Name validation (supports Persian and English)
- */
-export function validateName(
-  name: string,
-  fieldName: 'first_name' | 'last_name',
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en', strictMode = false } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-  const warnings: Record<string, string> = {};
-
-  if (!name || !name.trim()) {
-    errors[fieldName] = getValidationMessage('NAME_REQUIRED', language);
-  } else {
-    const trimmed = name.trim();
-    
-    if (trimmed.length < 2) {
-      errors[fieldName] = getValidationMessage('NAME_MIN_LENGTH', language, { min: 2 });
-    } else if (trimmed.length > 50) {
-      errors[fieldName] = getValidationMessage('NAME_MAX_LENGTH', language, { max: 50 });
-    }
-
-    // Check for numbers or special characters
-    if (VALIDATION_PATTERNS.NUMBERS.test(trimmed)) {
-      errors[fieldName] = getValidationMessage('CHARACTERS_ONLY', language);
-    }
-
-    // In strict mode, warn about mixed languages
-    if (strictMode && hasMixedLanguages(trimmed)) {
-      warnings[fieldName] = getValidationMessage('MIXED_LANGUAGE', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings,
-  };
-}
-
-/**
- * Date of birth validation
- */
-export function validateDateOfBirth(
-  dateOfBirth: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (dateOfBirth && dateOfBirth.trim()) {
-    if (!VALIDATION_PATTERNS.DATE_ISO.test(dateOfBirth)) {
-      errors.date_of_birth = getValidationMessage('DATE_INVALID', language);
-    } else {
-      const birthDate = new Date(dateOfBirth);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
+  commonPatterns.forEach((pattern, index) => {
+    if (pattern.test(password)) {
+      const messages = [
+        ['Password should contain special characters for better security', 'برای امنیت بیشتر، رمز عبور باید شامل کاراکترهای ویژه باشد'],
+        ['Avoid using repeated characters', 'از استفاده کاراکترهای تکراری خودداری کنید'],
+        ['Password cannot contain only numbers', 'رمز عبور نمی‌تواند فقط شامل اعداد باشد'],
+        ['Password cannot contain only letters', 'رمز عبور نمی‌تواند فقط شامل حروف باشد'],
+      ];
       
-      if (age < 13) {
-        errors.date_of_birth = getValidationMessage('AGE_MINIMUM', language, { min: 13 });
-      } else if (age > 120) {
-        errors.date_of_birth = getValidationMessage('AGE_MAXIMUM', language, { max: 120 });
-      }
+      warnings.push(createValidationError(
+        'password',
+        'WEAK_PATTERN',
+        messages[index][0],
+        messages[index][1],
+        options.language,
+        'warning'
+      ));
     }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-/**
- * Iranian National ID validation
- */
-export function validateNationalId(
-  nationalId: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (nationalId && nationalId.trim()) {
-    if (!validateIranianNationalId(nationalId.trim())) {
-      errors.national_id = getValidationMessage('NATIONAL_ID_INVALID', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-/**
- * URL validation
- */
-export function validateUrl(
-  url: string,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  const errors: Record<string, string> = {};
-
-  if (url && url.trim()) {
-    if (!VALIDATION_PATTERNS.URL.test(url.trim())) {
-      errors.url = getValidationMessage('URL_INVALID', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings: {},
-  };
-}
-
-// ==================== FORM VALIDATORS ====================
-
-/**
- * Validate registration form
- */
-export function validateSignUpForm(
-  data: Partial<RegisterDto>,
-  step: 'personal_info' | 'account_preferences' | 'all' = 'all',
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  const { language = 'en' } = { ...DEFAULT_CONFIG, ...config };
-  let errors: Record<string, string> = {};
-  let warnings: Record<string, string> = {};
-
-  // Personal Info Step
-  if (step === 'personal_info' || step === 'all') {
-    // Email validation
-    const emailResult = validateEmail(data.email || '', config);
-    errors = { ...errors, ...emailResult.errors };
-    warnings = { ...warnings, ...emailResult.warnings };
-
-    // Password validation
-    const passwordResult = validatePassword(
-      data.password || '',
-      (data as any).confirmPassword,
-      config
-    );
-    errors = { ...errors, ...passwordResult.errors };
-    warnings = { ...warnings, ...passwordResult.warnings };
-
-    // Name validation
-    const firstNameResult = validateName(data.first_name || '', 'first_name', config);
-    errors = { ...errors, ...firstNameResult.errors };
-    warnings = { ...warnings, ...firstNameResult.warnings };
-
-    const lastNameResult = validateName(data.last_name || '', 'last_name', config);
-    errors = { ...errors, ...lastNameResult.errors };
-    warnings = { ...warnings, ...lastNameResult.warnings };
-
-    // Phone validation (optional)
-    if (data.phone_number) {
-      const phoneResult = validatePhone(data.phone_number, config);
-      errors = { ...errors, ...phoneResult.errors };
-      warnings = { ...warnings, ...phoneResult.warnings };
-    }
-  }
-
-  // Account Preferences Step
-  if (step === 'account_preferences' || step === 'all') {
-    // Username validation (optional)
-    if (data.username) {
-      const usernameResult = validateUsername(data.username, config);
-      errors = { ...errors, ...usernameResult.errors };
-      warnings = { ...warnings, ...usernameResult.warnings };
-    }
-
-    // Date of birth validation (optional)
-    if (data.date_of_birth) {
-      const dobResult = validateDateOfBirth(data.date_of_birth, config);
-      errors = { ...errors, ...dobResult.errors };
-      warnings = { ...warnings, ...dobResult.warnings };
-    }
-
-    // Terms and privacy acceptance
-    if (!data.terms_accepted) {
-      errors.terms_accepted = getValidationMessage('TERMS_REQUIRED', language);
-    }
-
-    if (!data.privacy_policy_accepted) {
-      errors.privacy_policy_accepted = getValidationMessage('PRIVACY_REQUIRED', language);
-    }
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-    warnings,
-  };
-}
-
-/**
- * Validate login form
- */
-export function validateLoginForm(
-  data: Partial<LoginDto>,
-  config: Partial<ValidationConfig> = {}
-): ValidationResult {
-  let errors: Record<string, string> = {};
-  let warnings: Record<string, string> = {};
-
-  // Email validation
-  const emailResult = validateEmail(data.email || '', config);
-  errors = { ...errors, ...emailResult.errors };
-  warnings = { ...warnings, ...emailResult.warnings };
-
-  // Password validation (basic - just check if provided)
-  const passwordResult = validatePassword(data.password || '', undefined, {
-    ...config,
-    strictMode: false,
   });
-  errors = { ...errors, ...passwordResult.errors };
+
+  // Common passwords check
+  if (options.checkCommonPasswords) {
+    const commonPasswords = [
+      'password', '123456', '123456789', 'qwerty', 'abc123',
+      'password123', 'admin', 'letmein', 'welcome', 'monkey',
+      // Persian common passwords
+      'رمزعبور', '۱۲۳۴۵۶', 'ایران', 'تهران', 'اصفهان'
+    ];
+
+    if (commonPasswords.includes(password.toLowerCase())) {
+      errors.push(createValidationError(
+        'password',
+        'COMMON_PASSWORD',
+        'This password is too common and easily guessable',
+        'این رمز عبور خیلی رایج است و به راحتی قابل حدس زدن است',
+        options.language
+      ));
+    }
+  }
+
+  // Sequential characters check
+  const hasSequential = /(?:abc|bcd|cde|def|123|234|345|456|789)/i.test(password);
+  if (hasSequential) {
+    warnings.push(createValidationError(
+      'password',
+      'SEQUENTIAL_CHARS',
+      'Avoid using sequential characters',
+      'از استفاده کاراکترهای متوالی خودداری کنید',
+      options.language,
+      'warning'
+    ));
+  }
+
+  // Calculate password strength score
+  const strengthScore = calculatePasswordStrength(password);
+  if (strengthScore < 3 && !options.allowWeakPasswords) {
+    warnings.push(createValidationError(
+      'password',
+      'WEAK_PASSWORD',
+      'Consider using a stronger password',
+      'استفاده از رمز عبور قوی‌تری را در نظر بگیرید',
+      options.language,
+      'warning'
+    ));
+  }
 
   return {
-    isValid: Object.keys(errors).length === 0,
+    isValid: errors.length === 0,
     errors,
-    warnings,
+    warnings: options.showWarnings ? warnings : undefined,
   };
-}
+};
 
-// ==================== EXPORT VALIDATION HELPERS ====================
+// ========================================================================================
+// USERNAME VALIDATION - INTERNATIONAL + PERSIAN
+// ========================================================================================
 
-export const validators = {
-  email: validateEmail,
-  password: validatePassword,
-  username: validateUsername,
-  phone: validatePhone,
-  name: validateName,
-  dateOfBirth: validateDateOfBirth,
-  nationalId: validateNationalId,
-  url: validateUrl,
-  signUpForm: validateSignUpForm,
-  loginForm: validateLoginForm,
-} as const;
+/**
+ * Username validation with Persian and Latin character support
+ * Handles cultural naming conventions and character restrictions
+ */
+export const validateUsername = (
+  username: string,
+  options: ValidationOptions = {}
+): FieldValidationResult => {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
 
-export const patterns = VALIDATION_PATTERNS;
-export const messages = VALIDATION_MESSAGES;
+  // Basic null/empty check
+  if (!username || typeof username !== 'string') {
+    errors.push(createValidationError(
+      'username',
+      'REQUIRED',
+      'Username is required',
+      'نام کاربری الزامی است',
+      options.language
+    ));
+    return { isValid: false, errors, warnings };
+  }
 
+  const trimmedUsername = username.trim();
 
+  // Length validation
+  if (trimmedUsername.length < 3) {
+    errors.push(createValidationError(
+      'username',
+      'TOO_SHORT',
+      'Username must be at least 3 characters long',
+      'نام کاربری باید حداقل ۳ کاراکتر باشد',
+      options.language
+    ));
+  }
 
+  if (trimmedUsername.length > 30) {
+    errors.push(createValidationError(
+      'username',
+      'TOO_LONG',
+      'Username is too long (maximum 30 characters)',
+      'نام کاربری خیلی طولانی است (حداکثر ۳۰ کاراکتر)',
+      options.language
+    ));
+  }
+
+  // Character validation
+  const hasEnglishChars = /[a-zA-Z]/.test(trimmedUsername);
+  const hasPersianChars = /[\u0600-\u06FF]/.test(trimmedUsername);
+  const hasNumbers = /[0-9]/.test(trimmedUsername);
+  const hasValidSpecialChars = /^[a-zA-Z0-9\u0600-\u06FF._-]+$/.test(trimmedUsername);
+
+  if (!hasValidSpecialChars) {
+    errors.push(createValidationError(
+      'username',
+      'INVALID_CHARACTERS',
+      'Username can only contain letters, numbers, dots, underscores, and hyphens',
+      'نام کاربری فقط می‌تواند شامل حروف، اعداد، نقطه، خط زیر و خط تیره باشد',
+      options.language
+    ));
+  }
+
+  // Starting/ending character validation
+  if (/^[._-]/.test(trimmedUsername) || /[._-]$/.test(trimmedUsername)) {
+    errors.push(createValidationError(
+      'username',
+      'INVALID_START_END',
+      'Username cannot start or end with dot, underscore, or hyphen',
+      'نام کاربری نمی‌تواند با نقطه، خط زیر یا خط تیره شروع یا تمام شود',
+      options.language
+    ));
+  }
+
+  // Consecutive special characters
+  if (/[._-]{2,}/.test(trimmedUsername)) {
+    errors.push(createValidationError(
+      'username',
+      'CONSECUTIVE_SPECIAL',
+      'Username cannot contain consecutive dots, underscores, or hyphens',
+      'نام کاربری نمی‌تواند شامل نقطه، خط زیر یا خط تیره‌های متوالی باشد',
+      options.language
+    ));
+  }
+
+  // Reserved usernames
+  const reservedUsernames = [
+    'admin', 'administrator', 'root', 'user', 'iranverse',
+    'api', 'www', 'mail', 'support', 'help', 'info',
+    'test', 'demo', 'guest', 'null', 'undefined',
+    // Persian reserved words
+    'مدیر', 'کاربر', 'پشتیبانی', 'راهنما', 'اطلاعات'
+  ];
+
+  if (reservedUsernames.includes(trimmedUsername.toLowerCase())) {
+    errors.push(createValidationError(
+      'username',
+      'RESERVED_USERNAME',
+      'This username is reserved and cannot be used',
+      'این نام کاربری رزرو شده و قابل استفاده نیست',
+      options.language
+    ));
+  }
+
+  // Only numbers check
+  if (/^[0-9._-]+$/.test(trimmedUsername)) {
+    errors.push(createValidationError(
+      'username',
+      'ONLY_NUMBERS',
+      'Username must contain at least one letter',
+      'نام کاربری باید حداقل یک حرف داشته باشد',
+      options.language
+    ));
+  }
+
+  // Mixed script warning (Persian + Latin)
+  if (hasEnglishChars && hasPersianChars) {
+    warnings.push(createValidationError(
+      'username',
+      'MIXED_SCRIPTS',
+      'Consider using either Persian or English characters for consistency',
+      'برای یکنواختی، استفاده از حروف فارسی یا انگلیسی را در نظر بگیرید',
+      options.language,
+      'warning'
+    ));
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: options.showWarnings ? warnings : undefined,
+  };
+};
+
+// ========================================================================================
+// NAME VALIDATION - CULTURAL SENSITIVITY
+// ========================================================================================
+
+/**
+ * Full name validation with Persian and international name support
+ * Handles cultural naming conventions and character sets
+ */
+export const validateFullName = (
+  name: string,
+  field: 'firstName' | 'lastName' | 'displayName',
+  options: ValidationOptions = {}
+): FieldValidationResult => {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationError[] = [];
+
+  // Basic null/empty check for required fields
+  if (!name || typeof name !== 'string') {
+    if (field !== 'displayName' || !options.allowEmptyOptional) {
+      const fieldNames = {
+        firstName: ['First name', 'نام'],
+        lastName: ['Last name', 'نام خانوادگی'],
+        displayName: ['Display name', 'نام نمایشی']
+      };
+      
+      errors.push(createValidationError(
+        field,
+        'REQUIRED',
+        `${fieldNames[field][0]} is required`,
+        `${fieldNames[field][1]} الزامی است`,
+        options.language
+      ));
+    }
+    return { isValid: errors.length === 0, errors, warnings };
+  }
+
+  const trimmedName = name.trim();
+
+  // Length validation
+  if (trimmedName.length === 0) {
+    errors.push(createValidationError(
+      field,
+      'REQUIRED',
+      'Name cannot be empty',
+      'نام نمی‌تواند خالی باشد',
+      options.language
+    ));
+    return { isValid: false, errors, warnings };
+  }
+
+  if (trimmedName.length < 2) {
+    errors.push(createValidationError(
+      field,
+      'TOO_SHORT',
+      'Name must be at least 2 characters long',
+      'نام باید حداقل ۲ کاراکتر باشد',
+      options.language
+    ));
+  }
+
+  if (trimmedName.length > 50) {
+    errors.push(createValidationError(
+      field,
+      'TOO_LONG',
+      'Name is too long (maximum 50 characters)',
+      'نام خیلی طولانی است (حداکثر ۵۰ کاراکتر)',
+      options.language
+    ));
+  }
+
+  // Character validation - support Persian, Arabic, Latin, and common diacritics
+  const validNameRegex = /^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFFa-zA-Z\s\-'\.]+$/;
+  
+  if (!validNameRegex.test(trimmedName)) {
+    errors.push(createValidationError(
+      field,
+      'INVALID_CHARACTERS',
+      'Name contains invalid characters. Only letters, spaces, hyphens, and apostrophes are allowed',
+      'نام شامل کاراکترهای نامعتبر است. فقط حروف، فاصله، خط تیره و آپستروف مجاز است',
+      options.language
+    ));
+  }
+
+  // No numbers allowed
+  if (/[0-9]/.test(trimmedName)) {
+    errors.push(createValidationError(
+      field,
+      'CONTAINS_NUMBERS',
+      'Name cannot contain numbers',
+      'نام نمی‌تواند شامل اعداد باشد',
+      options.language
+    ));
+  }
+
+  // Multiple consecutive spaces
+  if (/\s{2,}/.test(trimmedName)) {
+    warnings.push(createValidationError(
+      field,
+      'MULTIPLE_SPACES',
+      'Avoid using multiple consecutive spaces',
+      'از استفاده فاصله‌های متوالی خودداری کنید',
+      options.language,
+      'warning'
+    ));
+  }
+
+  // Starting/ending with space, hyphen, or apostrophe
+  if (/^[\s\-']/.test(trimmedName) || /[\s\-']$/.test(trimmedName)) {
+    errors.push(createValidationError(
+      field,
+      'INVALID_START_END',
+      'Name cannot start or end with space, hyphen, or apostrophe',
+      'نام نمی‌تواند با فاصله، خط تیره یا آپستروف شروع یا تمام شود',
+      options.language
+    ));
+  }
+
+  // Persian name validation
+  const hasPersianChars = /[\u0600-\u06FF]/.test(trimmedName);
+  const hasLatinChars = /[a-zA-Z]/.test(trimmedName);
+
+  if (options.requirePersianName && !hasPersianChars) {
+    errors.push(createValidationError(
+      field,
+      'PERSIAN_REQUIRED',
+      'Persian characters are required for this field',
+      'استفاده از حروف فارسی برای این فیلد الزامی است',
+      options.language
+    ));
+  }
+
+  // Mixed script warning
+  if (hasPersianChars && hasLatinChars) {
+    warnings.push(createValidationError(
+      field,
+      'MIXED_SCRIPTS',
+      'Consider using either Persian or Latin characters for consistency',
+      'برای یکنواختی، استفاده از حروف فارسی یا لاتین را در نظر بگیرید',
+      options.language,
+      'warning'
+    ));
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings: options.showWarnings ? warnings : undefined,
+  };
+};
+
+// ========================================================================================
+// FORM VALIDATION ORCHESTRATOR - COMPLETE FORMS
+// ========================================================================================
+
+/**
+ * Validate complete login form
+ */
+export const validateLoginForm = (
+  formData: { email: string; password: string },
+  options: ValidationOptions = {}
+): FormValidationResult => {
+  const fieldResults: Record<string, FieldValidationResult> = {};
+  const globalErrors: ValidationError[] = [];
+
+  // Validate individual fields
+  fieldResults.email = validateEmail(formData.email, options);
+  fieldResults.password = validatePassword(formData.password, {
+    ...options,
+    checkCommonPasswords: false, // Skip for login
+    allowWeakPasswords: true, // Allow for existing accounts
+  });
+
+  // Check overall form validity
+  const isValid = Object.values(fieldResults).every(result => result.isValid);
+
+  return {
+    isValid,
+    fieldResults,
+    globalErrors,
+  };
+};
+
+/**
+ * Validate complete signup form
+ */
+export const validateSignupForm = (
+  formData: {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+  },
+  options: ValidationOptions = {}
+): FormValidationResult => {
+  const fieldResults: Record<string, FieldValidationResult> = {};
+  const globalErrors: ValidationError[] = [];
+
+  // Validate individual fields
+  fieldResults.email = validateEmail(formData.email, options);
+  fieldResults.password = validatePassword(formData.password, {
+    ...options,
+    checkCommonPasswords: true,
+    allowWeakPasswords: false,
+  });
+  fieldResults.username = validateUsername(formData.username, options);
+
+  // Password confirmation validation
+  if (formData.password !== formData.confirmPassword) {
+    fieldResults.confirmPassword = {
+      isValid: false,
+      errors: [createValidationError(
+        'confirmPassword',
+        'PASSWORD_MISMATCH',
+        'Passwords do not match',
+        'رمزهای عبور یکسان نیستند',
+        options.language
+      )],
+    };
+  } else {
+    fieldResults.confirmPassword = { isValid: true, errors: [] };
+  }
+
+  // Optional name validation
+  if (formData.firstName) {
+    fieldResults.firstName = validateFullName(formData.firstName, 'firstName', options);
+  }
+
+  if (formData.lastName) {
+    fieldResults.lastName = validateFullName(formData.lastName, 'lastName', options);
+  }
+
+  // Check overall form validity
+  const isValid = Object.values(fieldResults).every(result => result.isValid);
+
+  return {
+    isValid,
+    fieldResults,
+    globalErrors,
+  };
+};
+
+// ========================================================================================
+// UTILITY FUNCTIONS - VALIDATION HELPERS
+// ========================================================================================
+
+/**
+ * Create standardized validation error
+ */
+const createValidationError = (
+  field: string,
+  code: string,
+  englishMessage: string,
+  persianMessage: string,
+  language: 'en' | 'fa' = 'en',
+  severity: 'error' | 'warning' = 'error'
+): ValidationError => {
+  return {
+    field,
+    code,
+    message: language === 'fa' ? persianMessage : englishMessage,
+    value: undefined,
+    constraint: severity,
+  };
+};
+
+/**
+ * Calculate password strength score (0-5)
+ */
+const calculatePasswordStrength = (password: string): number => {
+  let score = 0;
+
+  // Length scoring
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+
+  // Character diversity
+  if (/[a-z]/.test(password)) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1;
+
+  // Penalty for common patterns
+  if (/(.)\1{2,}/.test(password)) score -= 1; // Repeated characters
+  if (/(?:123|abc|qwe)/i.test(password)) score -= 1; // Sequential patterns
+
+  return Math.max(0, Math.min(5, score));
+};
+
+/**
+ * Get password strength label
+ */
+export const getPasswordStrengthLabel = (
+  password: string,
+  language: 'en' | 'fa' = 'en'
+): string => {
+  const score = calculatePasswordStrength(password);
+  
+  const labels = {
+    en: ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'],
+    fa: ['خیلی ضعیف', 'ضعیف', 'متوسط', 'خوب', 'قوی', 'خیلی قوی']
+  };
+
+  return labels[language][score] || labels[language][0];
+};
+
+/**
+ * Real-time validation with debouncing
+ */
+export const createDebouncedValidator = (
+  validatorFn: (value: string, options?: ValidationOptions) => FieldValidationResult,
+  debounceMs: number = 300
+) => {
+  let timeout: NodeJS.Timeout;
+  
+  return (
+    value: string,
+    options: ValidationOptions = {},
+    callback: (result: FieldValidationResult) => void
+  ) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      const result = validatorFn(value, options);
+      callback(result);
+    }, debounceMs);
+  };
+};
+
+/**
+ * Validate field based on type
+ */
+export const validateField = (
+  fieldType: 'email' | 'password' | 'username' | 'firstName' | 'lastName' | 'displayName',
+  value: string,
+  options: ValidationOptions = {}
+): FieldValidationResult => {
+  switch (fieldType) {
+    case 'email':
+      return validateEmail(value, options);
+    case 'password':
+      return validatePassword(value, options);
+    case 'username':
+      return validateUsername(value, options);
+    case 'firstName':
+    case 'lastName':
+    case 'displayName':
+      return validateFullName(value, fieldType, options);
+    default:
+      return { isValid: true, errors: [] };
+  }
+};
+
+/**
+ * Get validation error message for display
+ */
+export const getValidationErrorMessage = (
+  errors: ValidationError[],
+  language: 'en' | 'fa' = 'en'
+): string | null => {
+  if (errors.length === 0) return null;
+  
+  // Return the first error message
+  return errors[0].message;
+};
+
+/**
+ * Check if form has any validation errors
+ */
+export const hasValidationErrors = (result: FormValidationResult): boolean => {
+  return !result.isValid || result.globalErrors.length > 0;
+};
+
+/**
+ * Get all validation errors as flat array
+ */
+export const getAllValidationErrors = (result: FormValidationResult): ValidationError[] => {
+  const allErrors: ValidationError[] = [...result.globalErrors];
+  
+  Object.values(result.fieldResults).forEach(fieldResult => {
+    allErrors.push(...fieldResult.errors);
+  });
+  
+  return allErrors;
+};
+
+// ========================================================================================
+// EXPORT VALIDATION UTILITIES
+// ========================================================================================
+
+export default {
+  // Individual field validators
+  validateEmail,
+  validatePassword,
+  validateUsername,
+  validateFullName,
+  
+  // Form validators
+  validateLoginForm,
+  validateSignupForm,
+  
+  // Utility functions
+  validateField,
+  getPasswordStrengthLabel,
+  createDebouncedValidator,
+  getValidationErrorMessage,
+  hasValidationErrors,
+  getAllValidationErrors,
+  
+  // Password strength
+  calculatePasswordStrength: (password: string) => calculatePasswordStrength(password),
+};

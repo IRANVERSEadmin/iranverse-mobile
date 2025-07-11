@@ -1,3 +1,4 @@
+import { TouchableOpacity } from 'react-native';
 // src/screens/FirstScreen.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,7 +8,6 @@ import {
   StyleSheet, 
   PanResponder, 
   Dimensions, 
-  TouchableOpacity, 
   Text,
   TextInput,
   Animated,
@@ -260,7 +260,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         }
       }, CONFIG.ANIMATION.CONTROLS_HIDE_DELAY);
       
-      autoHideTimerRef.current = timer;
+      (autoHideTimerRef.current as any) = timer;
     };
 
     startHideTimer();
@@ -368,7 +368,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     audioAnalysisRef.current.lastBeatTime = Date.now();
     
     // Smooth beat detection with organic response
-    beatDetectionRef.current = setInterval(() => {
+    (beatDetectionRef.current as any) = setInterval(() => {
       const now = Date.now();
       const timeSinceLastBeat = now - audioAnalysisRef.current.lastBeatTime;
       const analysis = audioAnalysisRef.current;
@@ -498,7 +498,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       }
     }, 3000);
     
-    autoHideTimerRef.current = timer;
+    (autoHideTimerRef.current as any) = timer;
   };
 
   // Enterprise-grade pinch distance calculation with safety
@@ -663,7 +663,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       
       // Navigate to sign up screen
       // Navigate to SignUp screen
-        navigation.navigate('SignUp');
+navigation.navigate('AuthWelcome')
     } else {
       triggerHapticFeedback('light');
       // Invalid password - could add visual feedback here
@@ -2659,6 +2659,8 @@ const styles = StyleSheet.create({
 });
 
 export default FirstScreen;
+
+
 
 
 
