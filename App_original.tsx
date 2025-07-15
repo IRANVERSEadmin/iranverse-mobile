@@ -1,16 +1,14 @@
 // App.tsx - IRANVERSE Enterprise Mobile Platform
 // Revolutionary Navigation Architecture with Tesla-inspired Transitions
 // Built for 90M users - Enterprise Performance & Type Safety
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet } from 'react-native';
 
 // IRANVERSE Theme System
-import { ThemeProvider } from './src/shared/theme/ThemeProvider';
-// Startup verification
-import { verifyStartup, StartupResult } from './src/core/utils/startupVerification';
+import { ThemeProvider } from './src/components/theme/ThemeProvider';
+// Add this to your App.tsx file at the top, after imports
 
 // ========================================================================================
 // ENTERPRISE NAVIGATION TYPES - CENTRALIZED TYPE SAFETY
@@ -28,8 +26,6 @@ export type RootStackParamList = {
   First: undefined;
   Test: undefined;
   Showcase: undefined;
-  GrokShowcase: undefined;
-  ButtonTest: undefined;
   
   // ========================================================================================
   // AUTHENTICATION FLOW - ENTERPRISE SECURITY
@@ -154,25 +150,28 @@ export type RootStackParamList = {
 
 // Entry Point Screens
 import FirstScreen from './src/screens/FirstScreen';
-// Test Screens
-import TestScreen from './src/screens/test/TestScreen';
-import ShowcaseScreen from './src/screens/test/ShowcaseScreen';
-import GrokShowcase from './src/screens/test/GrokShowcase';
-import ButtonTest from './src/screens/test/ButtonTest';
-// Error Boundary
-import ErrorBoundary from './src/shared/components/ErrorBoundary';
-// Authentication Flow
-import AuthWelcomeScreen from './src/features/auth/screens/AuthWelcomeScreen';
-import EmailSentScreen from './src/features/auth/screens/EmailSentScreen';
-import VerificationErrorScreen from './src/features/auth/screens/VerificationErrorScreen';
-import ForgotPasswordScreen from './src/features/auth/screens/ForgotPasswordScreen';
-import AuthCompleteScreen from './src/features/auth/screens/AuthCompleteScreen';
-import SignupScreen from './src/features/auth/screens/SignUpScreen';
-import LoginScreen from './src/features/auth/screens/LoginScreen';
-// Onboarding Flow
-import AvatarCreationScreen from './src/features/onboarding/screens/AvatarCreationScreen';
-import OnboardingCompleteScreen from './src/features/onboarding/screens/OnboardingCompleteScreen';
-// Main Application Screens
+// Test Screen for debugging
+import TestScreen from './src/screens/TestScreen';
+// Showcase Screen
+import ShowcaseScreen from './src/screens/ShowcaseScreen';
+// Authentication Flow - COMPLETE ENTERPRISE SECURITY PIPELINE
+import AuthWelcomeScreen from './src/screens/auth/AuthWelcomeScreen';
+import EmailSentScreen from './src/screens/auth/EmailSentScreen';
+import VerificationErrorScreen from './src/screens/auth/VerificationErrorScreen';
+import ForgotPasswordScreen from './src/screens/auth/ForgotPasswordScreen';
+import AuthCompleteScreen from './src/screens/auth/AuthCompleteScreen';
+
+// Import SignupScreen from the corrected SignupScreen.tsx file
+import SignupScreen from './src/screens/SignUpScreen';
+import LoginScreen from './src/screens/LoginScreen';
+
+
+
+// Onboarding Flow - IDENTITY FORMATION PIPELINE
+import AvatarCreationScreen from './src/screens/onboarding/AvatarCreationScreen';
+import OnboardingCompleteScreen from './src/screens/onboarding/OnboardingCompleteScreen';
+
+// Main Application Screens - METAVERSE EXPERIENCE
 import HomeScreen from './src/screens/HomeScreen';
 import ThreeDSceneScreen from './src/screens/ThreeDSceneScreen';
 
@@ -258,7 +257,7 @@ const AppNavigation: React.FC = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Showcase" // Start with showcase screen
+        initialRouteName="Test"
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
@@ -279,18 +278,6 @@ const AppNavigation: React.FC = () => {
         <Stack.Screen 
           name="Showcase" 
           component={ShowcaseScreen}
-          options={TransitionConfigs.entry}
-        />
-        
-        <Stack.Screen 
-          name="GrokShowcase" 
-          component={GrokShowcase}
-          options={TransitionConfigs.entry}
-        />
-        
-        <Stack.Screen 
-          name="ButtonTest" 
-          component={ButtonTest}
           options={TransitionConfigs.entry}
         />
         
@@ -386,130 +373,21 @@ const AppNavigation: React.FC = () => {
 // ========================================================================================
 
 export default function App() {
-  const [startupResult, setStartupResult] = useState<StartupResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const runStartupVerification = async () => {
-      try {
-        const result = await verifyStartup();
-        setStartupResult(result);
-        
-        // Add a small delay to show the verification process
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error('Startup verification failed:', error);
-        setStartupResult({
-          success: false,
-          failedChecks: ['Startup verification system failed'],
-          warnings: [],
-          timestamp: Date.now(),
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    runStartupVerification();
-  }, []);
-
-  // Loading screen during startup verification
-  if (isLoading) {
-    return (
-      <View style={startupStyles.loadingContainer}>
-        <Text style={startupStyles.loadingTitle}>IRANVERSE</Text>
-        <Text style={startupStyles.loadingSubtitle}>Initializing enterprise systems...</Text>
-      </View>
-    );
-  }
-
-  // Critical startup failure
-  if (startupResult && !startupResult.success) {
-    return (
-      <View style={startupStyles.errorContainer}>
-        <Text style={startupStyles.errorTitle}>Startup Failed</Text>
-        <Text style={startupStyles.errorMessage}>
-          Critical system components failed to initialize:
-        </Text>
-        {startupResult.failedChecks.map((check, index) => (
-          <Text key={index} style={startupStyles.errorItem}>
-            • {check}
-          </Text>
-        ))}
-      </View>
-    );
-  }
-
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        {/* Status Bar Configuration - Enterprise Branding */}
-        <StatusBar 
-          style="light" 
-          backgroundColor="transparent" 
-          translucent 
-          hidden={false}
-        />
-        
-        {/* Navigation Structure */}
-        <ErrorBoundary>
-          <AppNavigation />
-        </ErrorBoundary>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <ThemeProvider>
+      {/* Status Bar Configuration - Enterprise Branding */}
+      <StatusBar 
+        style="light" 
+        backgroundColor="transparent" 
+        translucent 
+        hidden={false}
+      />
+      
+      {/* Navigation Structure */}
+      <AppNavigation />
+    </ThemeProvider>
   );
 }
-
-// Startup styles
-const startupStyles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#00d4ff',
-    marginBottom: 16,
-    letterSpacing: 2,
-  },
-  loadingSubtitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    textAlign: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ff6b6b',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    fontSize: 16,
-    color: '#ffffff',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  errorItem: {
-    fontSize: 14,
-    color: '#cccccc',
-    marginBottom: 8,
-    textAlign: 'left',
-    width: '100%',
-  },
-});
 
 // ========================================================================================
 // ENTERPRISE EXPORTS - TYPE SAFETY ACROSS APPLICATION
@@ -542,8 +420,7 @@ export const NavigationDebugInfo = __DEV__ ? {
   authFlowScreens: ['AuthWelcome', 'Login', 'Signup', 'EmailSent', 'VerificationError', 'ForgotPassword', 'AuthComplete'], // ✅ COMPLETE
   onboardingFlowScreens: ['AvatarCreation', 'OnboardingComplete'], // ✅ COMPLETE  
   mainAppScreens: ['Home', 'ThreeDScene'], // ✅ COMPLETE
-  entryScreens: ['First', 'Test', 'Showcase', 'GrokShowcase'], // ✅ COMPLETE
-  showcaseScreens: ['Showcase', 'GrokShowcase'], // ✅ Component galleries
+  entryScreens: ['First'], // ✅ COMPLETE
   implementationStatus: {
     authFlow: 'COMPLETE', // All auth screens implemented
     onboarding: 'COMPLETE', // All onboarding screens implemented
@@ -551,7 +428,6 @@ export const NavigationDebugInfo = __DEV__ ? {
     socialFeatures: 'PENDING', // Phase 4 features
     loginScreen: 'IMPLEMENTED', // ✅ Complete enterprise login system
     signupScreen: 'IMPLEMENTED', // ✅ Complete with TypeScript fixes
-    showcaseScreen: 'IMPLEMENTED', // ✅ Complete UI component showcase
   },
   navigationConfig: 'ENTERPRISE_OPTIMIZED', // Dynamic screen mapping
 } : null;
