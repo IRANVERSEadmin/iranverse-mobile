@@ -1773,6 +1773,14 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       // Update smooth camera interpolation and momentum
       updateSmoothCameraInterpolation();
 
+      // Get beat analysis data first
+      const analysis = audioAnalysisRef.current;
+      const isAnalyzing = analysis.isAnalyzing;
+      const smoothBeatStrength = analysis.currentBeatStrength;
+      const quickResponse = analysis.quickPulse;
+      const mediumResponse = analysis.mediumWave;
+      const slowResponse = analysis.slowResonance;
+
       // 2D SIN wave animation - beat-responsive
       const updateWaves = elapsed % 0.033 < 0.016; // Update ~30fps instead of 60fps
       if (updateWaves) {
@@ -1800,14 +1808,6 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       }
 
       const quantumTime = elapsed * 0.5;
-      
-      const analysis = audioAnalysisRef.current;
-      const isAnalyzing = analysis.isAnalyzing;
-      
-      const smoothBeatStrength = analysis.currentBeatStrength;
-      const quickResponse = analysis.quickPulse;
-      const mediumResponse = analysis.mediumWave;
-      const slowResponse = analysis.slowResonance;
       
       const beatMultiplier = 1 + (
         quickResponse * 1.5 +
