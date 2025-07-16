@@ -1116,8 +1116,8 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
 
     // 2D SIN wave system - emanating from beneath main sphere
     const waveCenter = { x: 0, z: 0 }; // Directly beneath main sphere
-    const waveSpeed = 2.0; // Wave propagation speed
-    const waveAmplitude = 0.18; // Wave height
+    const baseWaveSpeed = 2.0; // Base wave propagation speed
+    const baseWaveAmplitude = 0.18; // Base wave height
     const waveFrequency = 3.0; // Wave density/spacing
     const positionAttr = gridGeometry.attributes.position;
     const baseY = Float32Array.from(positionAttr.array);
@@ -1773,9 +1773,13 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       // Update smooth camera interpolation and momentum
       updateSmoothCameraInterpolation();
 
-      // 2D SIN wave animation - optimized with less frequent updates
+      // 2D SIN wave animation - beat-responsive
       const updateWaves = elapsed % 0.033 < 0.016; // Update ~30fps instead of 60fps
       if (updateWaves) {
+        // Apply beat modulation to wave parameters
+        const waveSpeed = baseWaveSpeed * (1 + mediumResponse * 0.3); // Medium response for smooth flow
+        const waveAmplitude = baseWaveAmplitude * (1 + quickResponse * 0.5 + slowResponse * 0.2); // Multi-layer response
+        
         for (let i = 0; i < positionAttr.count; i++) {
           const x = positionAttr.getX(i);
           const z = positionAttr.getZ(i);
