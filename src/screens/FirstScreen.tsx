@@ -163,6 +163,7 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
   };
 
   const titlePosition = useRef(new Animated.Value(0)).current;
+  const scenePositionAnim = useRef(new Animated.Value(0)).current; // For moving 3D scene up
 
   useEffect(() => {
     forceResetKeyboard();
@@ -545,6 +546,14 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
         11.5,   // Final zoom/radius
         2000    // 2 second transition
       );
+      
+      // Animate 3D scene upward
+      Animated.timing(scenePositionAnim, {
+        toValue: -100, // Move up by 100 pixels
+        duration: 2000, // Same duration as camera transition
+        useNativeDriver: true,
+        easing: Animated.Easing.inOut(Animated.Easing.cubic)
+      }).start();
     } else {
       triggerHapticFeedback('light');
       // Invalid password - could add visual feedback here
@@ -2316,18 +2325,29 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       style={styles.container}
     >
       <View style={styles.content} {...panResponder.panHandlers}>
-      <GLView
-        ref={glViewRef}
-        style={styles.glView}
-        onContextCreate={async (gl) => {
-          try {
-            glViewRef.current = { gl };
-            await setupScene(gl);
-          } catch (error) {
-            // Error handled silently in production
+      <Animated.View 
+        style={[
+          styles.glViewContainer,
+          {
+            transform: [{
+              translateY: scenePositionAnim
+            }]
           }
-        }}
-      />
+        ]}
+      >
+        <GLView
+          ref={glViewRef}
+          style={styles.glView}
+          onContextCreate={async (gl) => {
+            try {
+              glViewRef.current = { gl };
+              await setupScene(gl);
+            } catch (error) {
+              // Error handled silently in production
+            }
+          }}
+        />
+      </Animated.View>
       
       {/* NEW: SVG Logo Overlay - Static */}
       <View style={styles.logoOverlay} pointerEvents="none">
@@ -2493,6 +2513,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   glView: {
+    flex: 1,
+  },
+  glViewContainer: {
     flex: 1,
   },
   titleContainer: {
