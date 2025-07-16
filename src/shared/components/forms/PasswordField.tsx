@@ -23,7 +23,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Input, { InputProps, InputRef } from './Input';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION

@@ -32,7 +32,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import Text from './Text';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION
@@ -776,12 +776,12 @@ const CardHeader = memo<CardHeaderProps>(({
       {leftComponent}
       <TitleComponent style={textContainerStyle} onPress={onTitlePress}>
         {title && (
-          <Text style={[defaultTitleStyle, titleStyle]}>
+          <Text style={[defaultTitleStyle, ...(titleStyle ? [titleStyle] : [])]}>
             {title}
           </Text>
         )}
         {subtitle && (
-          <Text style={[defaultSubtitleStyle, subtitleStyle]}>
+          <Text style={[defaultSubtitleStyle, ...(subtitleStyle ? [subtitleStyle] : [])]}>
             {subtitle}
           </Text>
         )}

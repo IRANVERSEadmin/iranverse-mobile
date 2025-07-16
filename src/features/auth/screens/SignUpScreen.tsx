@@ -18,17 +18,17 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // IRANVERSE Components - Using verified components
-import SafeArea from '../components/ui/SafeArea';
-import GradientBackground from '../components/ui/GradientBackground';
-import Text from '../components/ui/Text';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
-import KeyboardAvoidingView from '../components/ui/KeyboardAvoidingView';
-import AuthHeader from '../components/auth/AuthHeader';
-import AuthFooter from '../components/auth/AuthFooter';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
+import Button from '../../../shared/components/ui/Button';
+import Card from '../../../shared/components/ui/Card';
+import KeyboardAvoidingView from '../../../shared/components/layout/KeyboardAvoidingView';
+import AuthHeader from '../components/AuthHeader';
+import AuthFooter from '../components/AuthFooter';
 
 // Import the centralized type definitions from App.tsx
-import { RootStackParamList } from '../../App';
+import { RootStackParamList } from '../../../../App';
 
 // ========================================================================================
 // ENTERPRISE API CONFIGURATION - PRODUCTION DEPLOYMENT
@@ -629,8 +629,6 @@ const SignupScreen: React.FC = () => {
       variant="glass"
       style={styles.oauthCard}
       padding="large"
-      animatedEntrance
-      entranceDelay={200}
     >
       <Text
         variant="h3"
@@ -676,8 +674,6 @@ const SignupScreen: React.FC = () => {
       variant="glass"
       style={styles.formCard}
       padding="large"
-      animatedEntrance
-      entranceDelay={400}
     >
       <Text
         variant="h3"
@@ -803,8 +799,6 @@ const SignupScreen: React.FC = () => {
       variant="glass"
       style={styles.formCard}
       padding="large"
-      animatedEntrance
-      entranceDelay={400}
     >
       <Text
         variant="h3"

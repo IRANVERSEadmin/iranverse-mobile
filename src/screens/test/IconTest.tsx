@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { Text } from '../ui/Text';
+import { Text } from '../../shared/components/ui/Text';
 import SmartIcon, { 
   SmartSearchIcon, 
   SmartBackIcon, 
@@ -12,8 +12,8 @@ import SmartIcon, {
   SmartMailIcon,
   SmartPhoneIcon,
   SmartEyeIcon 
-} from '../ui/SmartIcon';
-import { useTheme } from '../ui/theme/ThemeProvider';
+} from '../../shared/components/ui/SmartIcon';
+import { useTheme } from '../../shared/theme/ThemeProvider';
 
 const IconTest: React.FC = () => {
   const theme = useTheme();

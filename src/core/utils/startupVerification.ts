@@ -107,7 +107,7 @@ class StartupVerificationSystem {
       check: () => {
         try {
           // Check if our theme provider exists
-          require('../components/theme/ThemeProvider');
+          require('../../shared/theme/ThemeProvider');
           return true;
         } catch {
           return false;

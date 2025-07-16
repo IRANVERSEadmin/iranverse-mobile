@@ -20,12 +20,12 @@ import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navig
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // IRANVERSE Components - Using only verified components
-import SafeArea from '../components/ui/SafeArea';
-import GradientBackground from '../components/ui/GradientBackground';
-import Text from '../components/ui/Text';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
 
 // Import the centralized type definitions from App.tsx
-import { RootStackParamList } from '../../App';
+import { RootStackParamList } from '../../../../App';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE LOGIN SYSTEM

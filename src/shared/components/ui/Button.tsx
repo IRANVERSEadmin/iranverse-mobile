@@ -31,7 +31,7 @@ try {
   );
 }
 
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 import SmartIcon, { SmartGoogleIcon, SmartAppleIcon, SmartTwitterIcon } from './SmartIcon';
 
 // ========================================================================================

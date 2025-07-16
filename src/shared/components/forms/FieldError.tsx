@@ -12,7 +12,7 @@ import {
   TextStyle,
   TouchableOpacity,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // TYPES - SIMPLIFIED & FOCUSED

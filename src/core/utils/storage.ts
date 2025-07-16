@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import * as AesCrypto from 'react-native-aes-crypto';
 import { Platform } from 'react-native';
-import { ENCRYPTION_CONFIG } from '../constants/config';
+import { ENCRYPTION_CONFIG } from '../config/app.config';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE SECURITY

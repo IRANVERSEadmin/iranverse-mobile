@@ -16,6 +16,7 @@ import React, {
   Component
 } from 'react';
 import {
+  View,
   Animated,
   ViewStyle,
   Platform,

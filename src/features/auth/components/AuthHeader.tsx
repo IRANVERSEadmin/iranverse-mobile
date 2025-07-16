@@ -24,8 +24,8 @@ import {
   ActivityIndicator,
   LayoutChangeEvent,
 } from 'react-native';
-import Text from '../ui/Text';
-import { useTheme } from '../theme/ThemeProvider';
+import Text from '../../../shared/components/ui/Text';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION

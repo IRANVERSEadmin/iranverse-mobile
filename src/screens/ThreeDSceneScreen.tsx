@@ -18,11 +18,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IRANVERSE Components
-import SafeArea from '../components/ui/SafeArea';
-import Text from '../components/ui/Text';
-import Loader from '../components/ui/Loader';
-import Toast, { toast } from '../components/ui/Toast';
-import { useTheme, useColors } from '../components/theme/ThemeProvider';
+import SafeArea from '../shared/components/layout/SafeArea';
+import Text from '../shared/components/ui/Text';
+import Loader from '../shared/components/ui/Loader';
+import ToastProvider, { useToast } from '../shared/components/ui/Toast';
+import { useTheme } from '../shared/theme/ThemeProvider';
 
 // ========================================================================================
 // JOYSTICK COMPONENT - ENTERPRISE CONTROLS
@@ -146,16 +146,13 @@ interface ThreeDState {
   avatarUrl: string | null;
   joystickEnabled: boolean;
   sceneReady: boolean;
-  toastVisible: boolean;
-  toastMessage: string;
-  toastType: 'success' | 'error' | 'warning';
 }
 
 // ========================================================================================
 // 3D SCENE SCREEN - REVOLUTIONARY METAVERSE
 // ========================================================================================
 
-const ThreeDSceneScreen: React.FC = () => {
+const ThreeDSceneScreenContent: React.FC = () => {
   // Navigation & Route
   const navigation = useNavigation<ThreeDSceneScreenNavigationProp>();
   const route = useRoute<ThreeDSceneScreenRouteProp>();
@@ -163,7 +160,7 @@ const ThreeDSceneScreen: React.FC = () => {
 
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
+  const { colors } = theme;
 
   // Component State
   const [state, setState] = useState<ThreeDState>({
@@ -174,9 +171,6 @@ const ThreeDSceneScreen: React.FC = () => {
     avatarUrl: null,
     joystickEnabled: false,
     sceneReady: false,
-    toastVisible: false,
-    toastMessage: '',
-    toastType: 'success',
   });
 
   // Refs
@@ -186,21 +180,13 @@ const ThreeDSceneScreen: React.FC = () => {
   // TOAST MANAGEMENT - ENTERPRISE MESSAGING
   // ========================================================================================
 
+  const toast = useToast();
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
-    setState(prev => ({
-      ...prev,
-      toastVisible: true,
-      toastMessage: message,
-      toastType: type,
-    }));
-
-    setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        toastVisible: false,
-      }));
-    }, 3000);
-  }, []);
+    toast.show({
+      type,
+      title: message,
+    });
+  }, [toast]);
 
   // ========================================================================================
   // AVATAR URL MANAGEMENT - ENTERPRISE DATA HANDLING
@@ -509,6 +495,10 @@ const ThreeDSceneScreen: React.FC = () => {
         let clock = new THREE.Clock();
         let moveSpeed = 0.05;
         
+        // Logo Billboard Animation Variables
+        let logoSphere, logoTexture, logoMaterial; // Keep logoSphere name for compatibility
+        let logoAnimationMixer;
+        
         // Track if joystick is currently being touched
         let joystickActive = false;
         
@@ -627,6 +617,9 @@ const ThreeDSceneScreen: React.FC = () => {
           
           // Load scene and avatar
           loadScene();
+          
+          // Create animated logo billboard
+          createAnimatedLogoSphere();
           
           // Request avatar URL from React Native
           postMessageToReactNative({ type: 'requestAvatarUrl' });
@@ -851,6 +844,180 @@ const ThreeDSceneScreen: React.FC = () => {
               updateStatus('Error loading scene. Trying to continue...');
             }
           );
+        }
+        
+        // ========================================================================================
+        // ANIMATED LOGO SPHERE - IRANVERSE BRANDING IN 3D SPACE
+        // ========================================================================================
+        
+        function createAnimatedLogoSphere() {
+          console.log('Creating animated logo billboard');
+          
+          // Create plane geometry for billboard effect
+          const logoGeometry = new THREE.PlaneGeometry(3, 2.5); // Wider for logo aspect ratio
+          
+          // Load PNG logo texture
+          const textureLoader = new THREE.TextureLoader();
+          
+          // Create canvas logo immediately (more reliable)
+          createCanvasLogo();
+          
+          // Also try to load PNG logo as enhancement
+          textureLoader.load(
+            'https://raw.githubusercontent.com/FreedomThroughSubversion/test-asses/main/iranverse-logo-white.png',
+            function(texture) {
+              console.log('PNG logo loaded successfully, updating material');
+              logoTexture = texture;
+              if (logoMaterial) {
+                logoMaterial.map = texture;
+                logoMaterial.needsUpdate = true;
+              }
+            },
+            function(progress) {
+              console.log('Loading PNG logo:', Math.round(progress.loaded / progress.total * 100) + '%');
+            },
+            function(error) {
+              console.warn('PNG logo failed, keeping canvas version:', error);
+            }
+          );
+          
+          // Create material for billboard with proper settings for visibility
+          logoMaterial = new THREE.MeshBasicMaterial({
+            transparent: true,
+            alphaTest: 0.1,
+            side: THREE.DoubleSide,
+            opacity: 1.0,
+            color: 0xffffff, // White base color
+            depthTest: false, // Ensure it renders on top
+            depthWrite: false
+          });
+          
+          // Create the logo billboard (plane that always faces camera)
+          logoSphere = new THREE.Mesh(logoGeometry, logoMaterial);
+          logoSphere.position.set(0, 6, 2); // Closer to camera, lower position
+          logoSphere.renderOrder = 999; // Render on top
+          scene.add(logoSphere);
+          
+          // Create visible test cube first to verify positioning
+          const testGeometry = new THREE.BoxGeometry(1, 1, 1);
+          const testMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000, 
+            transparent: true, 
+            opacity: 0.5 
+          });
+          const testCube = new THREE.Mesh(testGeometry, testMaterial);
+          testCube.position.set(1, 6, 2); // Next to logo
+          scene.add(testCube);
+          
+          // Create glow effect behind logo
+          const glowGeometry = new THREE.PlaneGeometry(4, 3.5);
+          const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xEC602A,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide,
+            depthTest: false
+          });
+          const glowPlane = new THREE.Mesh(glowGeometry, glowMaterial);
+          glowPlane.position.set(0, 6, 1.9); // Slightly behind logo
+          glowPlane.renderOrder = 998;
+          scene.add(glowPlane);
+          
+          // Store references for animation
+          logoSphere.userData.glowPlane = glowPlane;
+          logoSphere.userData.glowMaterial = glowMaterial;
+          
+          console.log('Logo billboard created at position:', logoSphere.position);
+        }
+        
+        function createCanvasLogo() {
+          // Create canvas with logo as fallback
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 256; // Wider aspect ratio for logo
+          const ctx = canvas.getContext('2d');
+          
+          // Fill with solid background first for testing
+          ctx.fillStyle = '#000066';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Create gradient for text
+          const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+          gradient.addColorStop(0, '#FFFFFF');
+          gradient.addColorStop(0.5, '#EC602A');
+          gradient.addColorStop(1, '#FFFFFF');
+          
+          // Set text properties
+          ctx.font = 'bold 48px Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          // Draw text with glow effect
+          ctx.shadowColor = '#EC602A';
+          ctx.shadowBlur = 15;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          // Draw main text
+          ctx.fillStyle = gradient;
+          ctx.fillText('IRANVERSE', canvas.width / 2, canvas.height / 2);
+          
+          // Add border for visibility testing
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 4;
+          ctx.strokeRect(0, 0, canvas.width, canvas.height);
+          
+          // Create texture from canvas
+          logoTexture = new THREE.CanvasTexture(canvas);
+          logoTexture.needsUpdate = true;
+          
+          // Update material with texture immediately
+          if (logoMaterial) {
+            logoMaterial.map = logoTexture;
+            logoMaterial.needsUpdate = true;
+            console.log('Canvas texture applied to material successfully');
+          }
+          
+          console.log('Canvas logo texture created:', canvas.width + 'x' + canvas.height);
+        }
+        
+        function updateLogoSphereAnimation() {
+          if (!logoSphere || !camera) return;
+          
+          const time = Date.now() * 0.001;
+          
+          // Billboard effect - always face the camera
+          logoSphere.lookAt(camera.position);
+          
+          // Gentle floating motion
+          logoSphere.position.y = 6 + Math.sin(time * 0.8) * 0.5;
+          
+          // Subtle scale pulsing
+          const scale = 1 + Math.sin(time * 1.5) * 0.05;
+          logoSphere.scale.set(scale, scale, scale);
+          
+          // Animate glow effect
+          if (logoSphere.userData.glowMaterial) {
+            const glowMaterial = logoSphere.userData.glowMaterial;
+            glowMaterial.opacity = 0.15 + Math.sin(time * 2) * 0.1;
+          }
+          
+          // Animate main material opacity for subtle breathing effect
+          if (logoMaterial) {
+            logoMaterial.opacity = 0.85 + Math.sin(time * 1.2) * 0.1;
+          }
+          
+          // Make glow plane follow logo and also face camera
+          if (logoSphere.userData.glowPlane) {
+            const glowPlane = logoSphere.userData.glowPlane;
+            glowPlane.position.copy(logoSphere.position);
+            glowPlane.position.z -= 0.1; // Keep slightly behind
+            glowPlane.lookAt(camera.position);
+            
+            // Scale glow plane slightly differently
+            const glowScale = 1 + Math.sin(time * 1.8) * 0.08;
+            glowPlane.scale.set(glowScale, glowScale, glowScale);
+          }
         }
         
         function loadAvatar(avatarUrl) {
@@ -1121,6 +1288,22 @@ const ThreeDSceneScreen: React.FC = () => {
           
           updateAvatarPosition();
           
+          // Update logo sphere animation
+          updateLogoSphereAnimation();
+          
+          // Debug: Log sphere position every 60 frames (1 second at 60fps)
+          if (typeof window.frameCount === 'undefined') window.frameCount = 0;
+          window.frameCount++;
+          if (window.frameCount % 60 === 0) {
+            if (logoSphere) {
+              console.log('Logo visible:', logoSphere.visible, 'position:', logoSphere.position);
+              console.log('Camera position:', camera.position);
+              console.log('Logo material map:', logoMaterial ? !!logoMaterial.map : 'no material');
+            } else {
+              console.log('Logo sphere not created yet');
+            }
+          }
+          
           if (avatarMixer) {
             avatarMixer.update(delta);
           }
@@ -1183,10 +1366,10 @@ const ThreeDSceneScreen: React.FC = () => {
   const renderLoading = () => (
     <View style={styles.loadingOverlay}>
       <Loader
-        variant="orbital"
+        variant="quantum"
         size="large"
         text={state.modelStatus}
-        color={colors.interactive.text}
+        color={colors.interactive.text.primary}
       />
     </View>
   );
@@ -1263,11 +1446,6 @@ const ThreeDSceneScreen: React.FC = () => {
         {state.hasError && renderError()}
       </View>
 
-      {/* Toast Container */}
-      <Toast 
-        visible={state.toastVisible}
-        message={state.toastMessage}
-      />
     </SafeArea>
   );
 };
@@ -1434,5 +1612,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+// Main ThreeDSceneScreen component wrapped with ToastProvider
+const ThreeDSceneScreen: React.FC = () => {
+  return (
+    <ToastProvider>
+      <ThreeDSceneScreenContent />
+    </ToastProvider>
+  );
+};
 
 export default ThreeDSceneScreen;

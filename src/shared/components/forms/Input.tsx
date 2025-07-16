@@ -27,8 +27,8 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
-import SmartIcon, { SmartSearchIcon, SmartCloseIcon, SmartMailIcon, SmartPhoneIcon, SmartEyeIcon } from './SmartIcon';
+import { useTheme } from '../../theme/ThemeProvider';
+import SmartIcon, { SmartSearchIcon, SmartCloseIcon, SmartMailIcon, SmartPhoneIcon, SmartEyeIcon } from '../ui/SmartIcon';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION

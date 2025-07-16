@@ -3,11 +3,11 @@
 // Complete avatar lifecycle with Ready Player Me integration
 // Built for 90M users - 3D Pipeline + Real-time Sync + Status Polling
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode, useRef } from 'react';
-import { AvatarState, AvatarContextValue, UpdateAvatarRequest, AvatarError, AvatarProcessingStatus, AvatarGender, AvatarStatusResponse } from '../types/avatar';
-import { avatarApi } from '../constants/api';
-import { secureStorage } from '../utils/storage';
-import { mapAvatarResponse, getDefaultAvatar, validateAvatarData, isAvatarExpired } from '../utils/avatar';
-import { ENCRYPTION_CONFIG, AVATAR_CONFIG } from '../constants/config';
+import { AvatarState, AvatarContextValue, UpdateAvatarRequest, AvatarError, AvatarProcessingStatus, AvatarGender, AvatarStatusResponse } from '../types';
+import { avatarApi } from '../../../core/constants/api';
+import { secureStorage } from '../../../core/utils/storage';
+import { mapAvatarResponse, getDefaultAvatar, validateAvatarData, isAvatarExpired } from '../utils';
+import { ENCRYPTION_CONFIG, AVATAR_CONFIG } from '../../../core/config/app.config';
 
 // ========================================================================================
 // AVATAR CONTEXT SETUP - ENTERPRISE STATE MANAGEMENT

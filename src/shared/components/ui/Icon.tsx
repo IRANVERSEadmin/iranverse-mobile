@@ -6,7 +6,7 @@
 import React, { memo } from 'react';
 import { View, ViewStyle } from 'react-native';
 import Svg, { Path, Circle, Line, Polyline, Polygon, Rect } from 'react-native-svg';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // TYPE DEFINITIONS
@@ -205,13 +205,11 @@ const Icon: React.FC<IconProps> = memo(({
   strokeWidth = 2,
   testID,
 }) => {
-  const theme = useTheme();
-  
   // Calculate size
   const iconSize = typeof size === 'number' ? size : ICON_SIZES[size];
   
   // Determine color - default to theme-aware black/white
-  const iconColor = color || (theme.isDark ? '#FFFFFF' : '#000000');
+  const iconColor = color || '#FFFFFF';
   
   // Get icon path
   const iconPath = IconPaths[name] || IconPaths['info']; // Fallback to info icon
@@ -295,4 +293,3 @@ export const EyeOffIcon: React.FC<Omit<IconProps, 'name'>> = (props) => (
 // ========================================================================================
 
 export default Icon;
-export type { IconName, IconSize, IconProps };

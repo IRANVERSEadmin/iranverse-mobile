@@ -19,13 +19,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IRANVERSE Components
-import SafeArea from '../components/ui/SafeArea';
-import GradientBackground from '../components/ui/GradientBackground';
-import Button from '../components/ui/Button';
-import Text from '../components/ui/Text';
-import Loader from '../components/ui/Loader';
-import Toast, { toast } from '../components/ui/Toast';
-import { useTheme, useColors, useSpacing, useAnimations } from '../components/theme/ThemeProvider';
+import SafeArea from '../shared/components/layout/SafeArea';
+import GradientBackground from '../shared/components/layout/GradientBackground';
+import Button from '../shared/components/ui/Button';
+import Text from '../shared/components/ui/Text';
+import Loader from '../shared/components/ui/Loader';
+import ToastProvider, { useToast } from '../shared/components/ui/Toast';
+import { useTheme } from '../shared/theme/ThemeProvider';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE HOME SYSTEM
@@ -81,7 +81,7 @@ interface HomeState {
 // HOME SCREEN - REVOLUTIONARY AVATAR EXPERIENCE
 // ========================================================================================
 
-const HomeScreen: React.FC = () => {
+const HomeScreenContent: React.FC = () => {
   // Navigation & Route
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const route = useRoute<HomeScreenRouteProp>();
@@ -89,9 +89,7 @@ const HomeScreen: React.FC = () => {
 
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
 
   // Screen Dimensions
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -141,21 +139,13 @@ const HomeScreen: React.FC = () => {
   // TOAST MANAGEMENT - ENTERPRISE MESSAGING
   // ========================================================================================
 
+  const toast = useToast();
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
-    setState(prev => ({
-      ...prev,
-      toastVisible: true,
-      toastMessage: message,
-      toastType: type,
-    }));
-
-    setTimeout(() => {
-      setState(prev => ({
-        ...prev,
-        toastVisible: false,
-      }));
-    }, 3000);
-  }, []);
+    toast.show({
+      type,
+      title: message,
+    });
+  }, [toast]);
 
   // ========================================================================================
   // AVATAR MANAGEMENT - ENTERPRISE DATA HANDLING
@@ -690,10 +680,10 @@ const HomeScreen: React.FC = () => {
         {state.isLoading && (
           <View style={styles.loadingOverlay}>
             <Loader
-              variant="orbital"
+              variant="quantum"
               size="large"
               text="Loading Your Avatar..."
-              color={colors.interactive.text}
+              color={colors.interactive.text.primary}
             />
           </View>
         )}
@@ -828,13 +818,17 @@ const HomeScreen: React.FC = () => {
         {/* Bottom Navigation */}
         {renderBottomNavigation()}
 
-        {/* Toast Container */}
-        <Toast 
-          visible={state.toastVisible}
-          message={state.toastMessage}
-        />
       </GradientBackground>
     </SafeArea>
+  );
+};
+
+// Main HomeScreen component wrapped with ToastProvider
+const HomeScreen: React.FC = () => {
+  return (
+    <ToastProvider>
+      <HomeScreenContent />
+    </ToastProvider>
   );
 };
 

@@ -3,9 +3,9 @@
 // Dedicated avatar hook wrapping AvatarContext with enhanced functionality
 // Built for 90M users - Complete Avatar Lifecycle + Status Polling
 import { useCallback, useMemo, useEffect } from 'react';
-import { useAvatarContext } from '../context/AvatarContext';
-import { AvatarState, UpdateAvatarRequest, AvatarProcessingStatus, AvatarGender } from '../types/avatar';
-import { generateVersionedUrl, getOptimizedAvatarUrl, isAvatarExpired, getAvatarQualityScore } from '../utils/avatar';
+import { useAvatarContext } from '../contexts/AvatarContext';
+import { AvatarState, UpdateAvatarRequest, AvatarProcessingStatus, AvatarGender } from '../types';
+import { generateVersionedUrl, getOptimizedAvatarUrl, isAvatarExpired, getAvatarQualityScore } from '../utils';
 
 // ========================================================================================
 // ENHANCED AVATAR HOOK - ENTERPRISE INTERFACE

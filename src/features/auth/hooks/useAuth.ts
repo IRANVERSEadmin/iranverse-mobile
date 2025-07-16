@@ -3,9 +3,9 @@
 // Dedicated auth hook wrapping AuthContext with enhanced functionality
 // Built for 90M users - Complete Auth Interface + Error Handling
 import { useCallback, useMemo } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import { LoginRequest, SignupRequest, AuthenticatedUser, AuthResponse, LogoutRequest } from '../types/auth';
-import { isTokenExpired } from '../utils/storage';
+import { useAuthContext } from '../contexts/AuthContext';
+import { LoginRequest, SignupRequest, AuthenticatedUser, AuthResponse, LogoutRequest } from '../types';
+import { isTokenExpired } from '../../../core/utils/storage';
 
 // ========================================================================================
 // ENHANCED AUTHENTICATION HOOK - ENTERPRISE INTERFACE

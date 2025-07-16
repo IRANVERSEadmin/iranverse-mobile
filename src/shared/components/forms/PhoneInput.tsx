@@ -21,7 +21,6 @@ export const PhoneInput = forwardRef<InputRef, PhoneInputProps>((props, ref) => 
       autoCapitalize="none"
       autoCorrect={false}
       autoComplete="tel"
-      textContentType="telephoneNumber"
       placeholder={props.placeholder || "Enter your phone number"}
     />
   );

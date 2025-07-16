@@ -4,11 +4,11 @@
 // Built for 90M users - Type-Safe + Performance Optimized + Error Boundaries
 
 import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import { useAvatarContext } from '../context/AvatarContext';
-import { AuthState, AuthenticatedUser, LoginRequest, SignupRequest } from '../types/auth';
-import { AvatarState, RPMWebViewMessage, RPMAvatarCompleteEventData } from '../types/avatar';
-import { parseRPMEvent } from '../utils/avatar';
+import { useAuthContext } from '../../features/auth/contexts/AuthContext';
+import { useAvatarContext } from '../../features/avatar/contexts/AvatarContext';
+import { AuthState, AuthenticatedUser, LoginRequest, SignupRequest } from '../../features/auth/types';
+import { AvatarState, RPMWebViewMessage, RPMAvatarCompleteEventData } from '../../features/avatar/types';
+import { parseRPMEvent } from '../../features/avatar/utils';
 import { isTokenExpired as checkTokenExpired } from '../utils/storage';
 
 // ========================================================================================
@@ -613,6 +613,9 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
 // ========================================================================================
 // EXPORTS - CENTRALIZED HOOK ACCESS
 // ========================================================================================
+
+// Export error handler hook
+export * from './useErrorHandler';
 
 export default {
   // Core hooks

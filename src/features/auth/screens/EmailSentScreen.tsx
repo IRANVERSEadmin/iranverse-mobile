@@ -13,17 +13,17 @@ import {
   Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { RootStackParamList } from '../../../../App';
 
 // Enterprise Component Library
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Text from '../../components/ui/Text';
-import Button from '../../components/ui/Button';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
+import Button from '../../../shared/components/ui/Button';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // Auth Components
-import AuthHeader from '../../components/auth/AuthHeader';
+import AuthHeader from '../components/AuthHeader';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE EMAIL VERIFICATION
@@ -42,9 +42,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
   
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
   
   // State Management
   const [resendCooldown, setResendCooldown] = useState(60); // 60 seconds cooldown
@@ -101,7 +99,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
       // Content fade in
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: animations.duration.normal,
+        duration: animations.duration.medium,
         useNativeDriver: true,
       }).start();
       
@@ -298,7 +296,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
             ]}
           >
             <View style={[styles.emailIcon, { backgroundColor: colors.interactive.surface }]}>
-              <Text style={[styles.emailIconText, { color: colors.interactive.text }]}>
+              <Text style={[styles.emailIconText, { color: colors.interactive.text.primary }]}>
                 ✉️
               </Text>
             </View>
@@ -309,7 +307,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
             <Text
               variant="h3"
               align="center"
-              style={[styles.instructionTitle, { color: colors.interactive.text }]}
+              style={[styles.instructionTitle, { color: colors.interactive.text.primary }]}
             >
               Verification Email Sent
             </Text>
@@ -317,7 +315,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
             <Text
               variant="body"
               align="center"
-              style={[styles.instructionText, { color: colors.interactive.textSecondary }]}
+              style={[styles.instructionText, { color: colors.interactive.text.secondary }]}
             >
               Click the verification link in your email to continue setting up your IRANVERSE account.
             </Text>
@@ -325,7 +323,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
             <Text
               variant="bodySmall"
               align="center"
-              style={[styles.helperText, { color: colors.interactive.textSecondary }]}
+              style={[styles.helperText, { color: colors.interactive.text.secondary }]}
             >
               The link will open IRANVERSE automatically and verify your account.
             </Text>
@@ -375,7 +373,7 @@ const EmailSentScreen: React.FC<EmailSentScreenProps> = ({ navigation, route }) 
             <Text
               variant="caption"
               align="center"
-              style={[styles.helpText, { color: colors.interactive.textSecondary }]}
+              style={[styles.helpText, { color: colors.interactive.text.secondary }]}
             >
               Didn't receive the email? Check your spam folder or try a different email address.
             </Text>

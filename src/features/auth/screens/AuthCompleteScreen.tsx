@@ -13,17 +13,17 @@ import {
   Linking,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { RootStackParamList } from '../../../../App';
 
 // Enterprise Component Library
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Text from '../../components/ui/Text';
-import Button from '../../components/ui/Button';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
+import Button from '../../../shared/components/ui/Button';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // Auth Components
-import AuthHeader from '../../components/auth/AuthHeader';
+import AuthHeader from '../components/AuthHeader';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE AUTH COMPLETION
@@ -42,9 +42,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
   
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
   
   // State Management
   const [isNavigating, setIsNavigating] = useState(false);
@@ -94,7 +92,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
       // Content fade in
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: animations.duration.normal,
+        duration: animations.duration.medium,
         useNativeDriver: true,
       }).start();
       
@@ -221,7 +219,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
             ]}
           >
             <View style={[styles.successIcon, { backgroundColor: colors.interactive.surface }]}>
-              <Text style={[styles.successIconText, { color: colors.interactive.text }]}>
+              <Text style={[styles.successIconText, { color: colors.interactive.text.primary }]}>
                 ✅
               </Text>
             </View>
@@ -232,7 +230,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
             <Text
               variant="h3"
               align="center"
-              style={[styles.successTitle, { color: colors.interactive.text }]}
+              style={[styles.successTitle, { color: colors.interactive.text.primary }]}
             >
               {isNewUser ? 'Account Created Successfully!' : 'Welcome Back!'}
             </Text>
@@ -240,7 +238,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
             <Text
               variant="body"
               align="center"
-              style={[styles.successText, { color: colors.interactive.textSecondary }]}
+              style={[styles.successText, { color: colors.interactive.text.secondary }]}
             >
               {isNewUser 
                 ? 'Your IRANVERSE account has been successfully created and verified.'
@@ -251,7 +249,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
             <Text
               variant="bodySmall"
               align="center"
-              style={[styles.helperText, { color: colors.interactive.textSecondary }]}
+              style={[styles.helperText, { color: colors.interactive.text.secondary }]}
             >
               {nextAction === 'avatar_creation' 
                 ? 'Next, create your digital avatar to enter the metaverse.'
@@ -286,7 +284,7 @@ const AuthCompleteScreen: React.FC<AuthCompleteScreenProps> = ({ navigation, rou
             <Text
               variant="caption"
               align="center"
-              style={[styles.userInfoText, { color: colors.interactive.textSecondary }]}
+              style={[styles.userInfoText, { color: colors.interactive.text.secondary }]}
             >
               Signed in as: {email}
             </Text>

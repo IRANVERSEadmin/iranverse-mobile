@@ -17,7 +17,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // GROK CONFIGURATION - SLIT 3D CARVED AESTHETIC
@@ -151,7 +151,6 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
   // Animation values
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const translateYAnim = useRef(new Animated.Value(0)).current;
-  const shadowAnim = useRef(new Animated.Value(1)).current;
   
   // Handle press in
   const handlePressIn = useCallback(() => {
@@ -165,6 +164,7 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
     }
     
     // Animate to pressed state
+    // Native animations
     Animated.parallel([
       Animated.timing(scaleAnim, {
         toValue: GROK_CONFIG.animation.pressScale,
@@ -176,13 +176,8 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
         duration: GROK_CONFIG.animation.pressDuration,
         useNativeDriver: true,
       }),
-      Animated.timing(shadowAnim, {
-        toValue: 0.6, // Reduce shadow when pressed
-        duration: GROK_CONFIG.animation.pressDuration,
-        useNativeDriver: false,
-      }),
     ]).start();
-  }, [disabled, loading, hapticFeedback, scaleAnim, translateYAnim, shadowAnim]);
+  }, [disabled, loading, hapticFeedback, scaleAnim, translateYAnim]);
   
   // Handle press out
   const handlePressOut = useCallback(() => {
@@ -191,6 +186,7 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
     setIsPressed(false);
     
     // Animate back to normal state
+    // Native animations
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -204,13 +200,8 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
         tension: 40,
         useNativeDriver: true,
       }),
-      Animated.timing(shadowAnim, {
-        toValue: 1,
-        duration: GROK_CONFIG.animation.releaseDuration,
-        useNativeDriver: false,
-      }),
     ]).start();
-  }, [disabled, loading, scaleAnim, translateYAnim, shadowAnim]);
+  }, [disabled, loading, scaleAnim, translateYAnim]);
   
   // Container styles
   const containerStyle = StyleSheet.flatten([
@@ -222,7 +213,7 @@ const GrokButton: React.FC<GrokButtonProps> = memo(({
       // Deep shadow system
       shadowColor: GROK_CONFIG.shadow.outer.color,
       shadowOffset: GROK_CONFIG.shadow.outer.offset,
-      shadowOpacity: shadowAnim,
+      shadowOpacity: disabled ? 0.5 : GROK_CONFIG.shadow.outer.opacity,
       shadowRadius: GROK_CONFIG.shadow.outer.radius,
       elevation: GROK_CONFIG.shadow.outer.elevation,
     },

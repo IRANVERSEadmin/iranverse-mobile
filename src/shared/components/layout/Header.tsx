@@ -28,9 +28,9 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import Text from './Text';
-import { useTheme } from '../theme/ThemeProvider';
-import SmartIcon, { SmartSearchIcon, SmartBackIcon, SmartCloseIcon } from './SmartIcon';
+import Text from '../ui/Text';
+import { useTheme } from '../../theme/ThemeProvider';
+import SmartIcon, { SmartSearchIcon, SmartBackIcon, SmartCloseIcon } from '../ui/SmartIcon';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION
@@ -832,7 +832,7 @@ export const Header = memo(forwardRef<HeaderRef, HeaderProps>((props, ref) => {
         alignItems: alignment === 'center' ? 'center' : rtl ? 'flex-end' : 'flex-start',
       }}>
         <Text
-          style={[computedTitleStyle, titleStyle]}
+          style={[computedTitleStyle, ...(titleStyle ? [titleStyle] : [])]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -846,7 +846,7 @@ export const Header = memo(forwardRef<HeaderRef, HeaderProps>((props, ref) => {
                 color: theme.colors.interactive.text.secondary,
                 marginTop: 2,
               },
-              subtitleStyle,
+              ...(subtitleStyle ? [subtitleStyle] : []),
             ]}
             numberOfLines={1}
             ellipsizeMode="tail"

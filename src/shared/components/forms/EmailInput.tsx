@@ -27,7 +27,7 @@ import {
   UIManager,
 } from 'react-native';
 import Input, { InputProps, InputRef } from './Input';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

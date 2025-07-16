@@ -14,25 +14,25 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { RootStackParamList } from '../../../../App';
 
 // Enterprise Component Library
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Text from '../../components/ui/Text';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import FieldError from '../../components/ui/FieldError';
-import Loader from '../../components/ui/Loader';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
+import Button from '../../../shared/components/ui/Button';
+import Input from '../../../shared/components/forms/Input';
+import FieldError from '../../../shared/components/forms/FieldError';
+import Loader from '../../../shared/components/ui/Loader';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // Auth Components
-import AuthHeader from '../../components/auth/AuthHeader';
-import AuthFooter from '../../components/auth/AuthFooter';
+import AuthHeader from '../components/AuthHeader';
+import AuthFooter from '../components/AuthFooter';
 
 // Enterprise Utilities
-import { validateEmail } from '../../utils/validation';
-import { useAuth } from '../../hooks/useAuth';
+import { validateEmail } from '../../../core/utils/validation';
+import { useAuth } from '../hooks/useAuth';
 
 // ========================================================================================
 // TYPES & INTERFACES - PASSWORD RESET
@@ -54,9 +54,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
   
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
   
   // Authentication
   const { requestPasswordReset, isLoading, error, clearError } = useAuth();
@@ -85,7 +83,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: animations.duration.normal,
+          duration: animations.duration.medium,
           useNativeDriver: true,
         }),
         Animated.spring(slideAnim, {
@@ -211,7 +209,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
           },
         ]}
       >
-        <View style={[styles.successIcon, { backgroundColor: colors.semantic.success }]}>
+        <View style={[styles.successIcon, { backgroundColor: colors.accent.success }]}>
           <Text style={[styles.successIconText, { color: colors.interactive.surface }]}>
             ✓
           </Text>
@@ -220,7 +218,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
         <Text
           variant="h3"
           align="center"
-          style={[styles.successTitle, { color: colors.interactive.text }]}
+          style={[styles.successTitle, { color: colors.interactive.text.primary }]}
         >
           Check Your Email
         </Text>
@@ -228,7 +226,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
         <Text
           variant="body"
           align="center"
-          style={[styles.successMessage, { color: colors.interactive.textSecondary }]}
+          style={[styles.successMessage, { color: colors.interactive.text.secondary }]}
         >
           We've sent password reset instructions to {email}
         </Text>
@@ -254,7 +252,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
           <Text
             variant="h2"
             align="center"
-            style={[styles.title, { color: colors.interactive.text }]}
+            style={[styles.title, { color: colors.interactive.text.primary }]}
           >
             Reset Your Password
           </Text>
@@ -262,7 +260,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
           <Text
             variant="body"
             align="center"
-            style={[styles.subtitle, { color: colors.interactive.textSecondary }]}
+            style={[styles.subtitle, { color: colors.interactive.text.secondary }]}
           >
             Enter your email address and we'll send you instructions to reset your password.
           </Text>
@@ -280,9 +278,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="email"
-            textContentType="emailAddress"
             error={emailError || undefined}
-            editable={!isLoading}
             returnKeyType="send"
             onSubmitEditing={handleSubmit}
             accessibilityLabel="Email address input"
@@ -331,7 +327,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
           <Text
             variant="caption"
             align="center"
-            style={[styles.alternativeText, { color: colors.interactive.textSecondary }]}
+            style={[styles.alternativeText, { color: colors.interactive.text.secondary }]}
           >
             Remember your password?{' '}
           </Text>
@@ -352,7 +348,7 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation,
           <Text
             variant="caption"
             align="center"
-            style={[styles.alternativeText, { color: colors.interactive.textSecondary }]}
+            style={[styles.alternativeText, { color: colors.interactive.text.secondary }]}
           >
             Don't have an account?{' '}
           </Text>

@@ -5,11 +5,11 @@
 import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Platform } from 'react-native';
-import { useAvatar } from './useAvatar';
-import { useAuth } from './useAuth';
-import { RPMWebViewMessage, RPMAvatarCompleteEventData, UpdateAvatarRequest } from '../types/avatar';
-import { parseRPMEvent } from '../utils/avatar';
-import { RPM_CONFIG } from '../constants/config';
+import { useAvatar } from '../../features/avatar/hooks/useAvatar';
+import { useAuth } from '../../features/auth/hooks/useAuth';
+import { RPMWebViewMessage, RPMAvatarCompleteEventData, UpdateAvatarRequest } from '../../features/avatar/types';
+import { parseRPMEvent } from '../../features/avatar/utils';
+import { RPM_CONFIG } from '../config/app.config';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE WEBVIEW SYSTEM

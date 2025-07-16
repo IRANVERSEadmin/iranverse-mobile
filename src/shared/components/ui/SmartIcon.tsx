@@ -8,7 +8,7 @@ import { TextStyle, ViewStyle } from 'react-native';
 import Text from './Text';
 import Icon, { IconName, IconSize, IconProps } from './Icon';
 import { ICON_CONFIG, ICON_MIGRATION_MAP, MigrationKey } from './IconConfig';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // TYPE DEFINITIONS
@@ -81,7 +81,7 @@ const SmartIcon: React.FC<SmartIconProps> = memo(({
   // Determine color
   const iconColor = color || 
     (ICON_CONFIG.RESPECT_THEME_COLORS 
-      ? (theme.isDark ? '#FFFFFF' : '#000000')
+      ? '#FFFFFF'
       : '#000000'
     );
   
@@ -108,12 +108,12 @@ const SmartIcon: React.FC<SmartIconProps> = memo(({
             lineHeight: textSize,
             textAlign: 'center',
           },
-          textStyle,
-          style,
+          textStyle as any,
+          style as any,
         ]}
         testID={testID || `text-icon-${iconText}`}
         accessible={ICON_CONFIG.INCLUDE_ACCESSIBILITY_LABELS}
-        accessibilityRole="image"
+        accessibilityRole="text"
         accessibilityLabel={`${iconText} icon`}
       >
         {iconText}
@@ -185,4 +185,3 @@ export const SmartTwitterIcon: React.FC<Omit<SmartIconProps, 'migrationKey'>> = 
 // ========================================================================================
 
 export default SmartIcon;
-export type { SmartIconProps };

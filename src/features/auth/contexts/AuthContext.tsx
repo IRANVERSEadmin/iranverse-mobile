@@ -3,10 +3,10 @@
 // Complete authentication state management with enterprise security
 // Built for 90M users - JWT + Token Refresh + Secure Storage
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
-import { AuthState, AuthContextValue, LoginRequest, SignupRequest, AuthResponse, AuthError, AuthenticatedUser, TokenRefreshResponse } from '../types/auth';
-import { authApi } from '../constants/api';
-import { authTokenStorage, secureStorage } from '../utils/storage';
-import { ENCRYPTION_CONFIG } from '../constants/config';
+import { AuthState, AuthContextValue, LoginRequest, SignupRequest, AuthResponse, AuthError, AuthenticatedUser, TokenRefreshResponse } from '../types';
+import { authApi } from '../../../core/constants/api';
+import { authTokenStorage, secureStorage } from '../../../core/utils/storage';
+import { ENCRYPTION_CONFIG } from '../../../core/config/app.config';
 import { Platform } from 'react-native';
 
 // ========================================================================================

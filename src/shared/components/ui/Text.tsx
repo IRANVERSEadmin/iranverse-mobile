@@ -21,7 +21,7 @@ import {
   Animated,
   AccessibilityInfo,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // CONSTANTS & CONFIGURATION

@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import Text, { TextProps } from './Text';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // HEADING VARIANTS & TYPES - ENTERPRISE HIERARCHY SYSTEM

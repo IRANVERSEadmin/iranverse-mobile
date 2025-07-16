@@ -3,8 +3,8 @@
 // Complete avatar lifecycle management with Ready Player Me integration
 // Built for 90M users - 3D Asset Pipeline + Cultural Customization
 import { Platform } from 'react-native';
-import { AvatarState, AvatarConfiguration, AvatarCustomizations, RPMAvatarCompleteEventData, UpdateAvatarRequest, AvatarError, AvatarGender, AvatarBodyType, AvatarQualityLevel } from '../types/avatar';
-import { AVATAR_CONFIG, CONFIG } from '../constants/config';
+import { AvatarState, AvatarConfiguration, AvatarCustomizations, RPMAvatarCompleteEventData, UpdateAvatarRequest, AvatarError, AvatarGender, AvatarBodyType, AvatarQualityLevel } from '../types';
+import { AVATAR_CONFIG, CONFIG } from '../../../core/config/app.config';
 
 // ========================================================================================
 // READY PLAYER ME EVENT PROCESSING - WEBVIEW INTEGRATION

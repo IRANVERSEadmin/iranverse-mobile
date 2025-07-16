@@ -16,14 +16,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IRANVERSE Components
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Button from '../../components/ui/Button';
-import Text from '../../components/ui/Text';
-import Card from '../../components/ui/Card';
-import Loader from '../../components/ui/Loader';
-import Toast, { toast } from '../../components/ui/Toast';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Button from '../../../shared/components/ui/Button';
+import Text from '../../../shared/components/ui/Text';
+import Card from '../../../shared/components/ui/Card';
+import Loader from '../../../shared/components/ui/Loader';
+import ToastProvider, { useToast } from '../../../shared/components/ui/Toast';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE ONBOARDING SYSTEM
@@ -64,7 +64,7 @@ interface OnboardingState {
 // ONBOARDING COMPLETE SCREEN - REVOLUTIONARY WELCOME
 // ========================================================================================
 
-const OnboardingCompleteScreen: React.FC = () => {
+const OnboardingCompleteScreenContent: React.FC = () => {
   // Navigation & Route
   const navigation = useNavigation<OnboardingCompleteScreenNavigationProp>();
   const route = useRoute<OnboardingCompleteScreenRouteProp>();
@@ -72,9 +72,7 @@ const OnboardingCompleteScreen: React.FC = () => {
 
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
 
   // Screen Dimensions
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -186,7 +184,7 @@ const OnboardingCompleteScreen: React.FC = () => {
         }),
         Animated.timing(celebrationAnim, {
           toValue: 0,
-          duration: animations.duration.normal,
+          duration: animations.duration.medium,
           useNativeDriver: true,
         }),
       ]).start();
@@ -253,12 +251,12 @@ const OnboardingCompleteScreen: React.FC = () => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: animations.duration.normal,
+        duration: animations.duration.medium,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnim, {
         toValue: 0.9,
-        duration: animations.duration.normal,
+        duration: animations.duration.medium,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -329,7 +327,7 @@ const OnboardingCompleteScreen: React.FC = () => {
       // Progress animation
       Animated.timing(progressAnim, {
         toValue: 1,
-        duration: animations.duration.slower,
+        duration: animations.duration.slow,
         useNativeDriver: false,
       }).start();
 
@@ -365,7 +363,6 @@ const OnboardingCompleteScreen: React.FC = () => {
         variant="glass"
         size="large"
         style={styles.welcomeCard}
-        animatedEntrance={false}
       >
         {/* Success Icon */}
         <Animated.View
@@ -556,16 +553,11 @@ const OnboardingCompleteScreen: React.FC = () => {
               variant="quantum"
               size="large"
               text="Preparing Your Experience..."
-              color={colors.interactive.text}
+              color={colors.interactive.text.primary}
             />
           </View>
         )}
 
-        {/* Toast Container */}
-        <Toast 
-          visible={state.toastVisible}
-          message={state.toastMessage}
-        />
       </GradientBackground>
     </SafeArea>
   );
@@ -711,5 +703,14 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
 });
+
+// Main OnboardingCompleteScreen component wrapped with ToastProvider
+const OnboardingCompleteScreen: React.FC = () => {
+  return (
+    <ToastProvider>
+      <OnboardingCompleteScreenContent />
+    </ToastProvider>
+  );
+};
 
 export default OnboardingCompleteScreen;

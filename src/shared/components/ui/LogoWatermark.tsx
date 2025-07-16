@@ -12,7 +12,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import Logo, { LogoVariant } from './Logo';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // WATERMARK SYSTEM CONSTANTS - PROFESSIONAL STANDARDS

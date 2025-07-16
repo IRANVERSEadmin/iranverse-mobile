@@ -11,7 +11,7 @@ import {
   TextStyle,
   TouchableOpacity,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // VALIDATION MESSAGE TYPES - ENTERPRISE FORM SYSTEM

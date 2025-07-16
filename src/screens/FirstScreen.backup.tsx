@@ -19,15 +19,12 @@ import { GLView } from 'expo-gl';
 import * as THREE from 'three';
 import { Renderer } from 'expo-three';
 import { Audio } from 'expo-av';
-import { Asset } from 'expo-asset';
 import type { 
   PanResponderInstance,
   GestureResponderEvent,
   TextInput as TextInputType
 } from 'react-native';
 import GradientBackground from '../shared/components/layout/GradientBackground';
-import IranverseLogo from '../shared/components/ui/IranverseLogo';
-import AnimatedIranverseLogo from '../shared/components/ui/AnimatedIranverseLogo';
 
 // Enterprise keyboard state machine type
 type KeyboardState = 'hidden' | 'showing' | 'shown' | 'hiding';
@@ -83,7 +80,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const lookAngleYRef = useRef(Math.acos(9.9 / 10));
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const logoAnimationRef = useRef<any>(null);
   
   // Enhanced gesture state management
   const gestureStateRef = useRef({
@@ -165,7 +161,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   });
   
   const beatDetectionRef = useRef<NodeJS.Timeout | null>(null);
-  const sceneDataRef = useRef<any>(null);
   
   // State variables (enterprise minimal - 5 states only)
   const [parabolicOrbit, setParabolicOrbit] = useState(false);
@@ -173,7 +168,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>('hidden');
   const [keyboardLanguage, setKeyboardLanguage] = useState<'english' | 'farsi'>('english');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
-  
   
   // Add a ref to track keyboard state for immediate access (avoiding state delays)
   const keyboardStateRef = useRef<KeyboardState>('hidden');
@@ -408,7 +402,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     analysis.quickPulse = intensity; // Immediate spike
     analysis.mediumWave = Math.max(analysis.mediumWave, intensity * 0.8); // Sustained wave
     analysis.slowResonance = Math.max(analysis.slowResonance, intensity * 0.4); // Background resonance
-    
   };
 
   const updateSmoothBeatResponse = () => {
@@ -864,46 +857,29 @@ navigation.navigate('AuthWelcome')
     showControlsTemporarily();
   };
 
-  // Simplified input activation to prevent crash
+  // Production-ready input activation - Force show approach
   const activateInput = (): void => {
-    try {
-      // Prevent multiple rapid activations
-      if (keyboardStateRef.current === 'showing' || keyboardStateRef.current === 'shown') {
-        return;
-      }
-      
-      // Simple state change without complex animations
-      keyboardStateRef.current = 'showing';
-      setKeyboardState('showing');
-      
-      // Simple animation
-      Animated.timing(keyboardAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }).start(() => {
-        keyboardStateRef.current = 'shown';
-        setKeyboardState('shown');
-      });
-      
-      // UI position animation
-      Animated.timing(uiPositionAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-      
-      // Input focus animation
-      Animated.timing(inputFocusAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-      
-      showControlsTemporarily();
-    } catch (error) {
-      // Error handled silently in production
-    }
+    // AGGRESSIVE APPROACH: Always force reset and show
+    // This eliminates all state checking issues
+    
+    // Step 1: Force stop all animations
+    keyboardAnim.stopAnimation();
+    uiPositionAnim.stopAnimation();
+    inputFocusAnim.stopAnimation();
+    
+    // Step 2: Force reset all values
+    keyboardAnim.setValue(0);
+    uiPositionAnim.setValue(0);
+    inputFocusAnim.setValue(0);
+    
+    // Step 3: Force state to hidden
+    keyboardStateRef.current = 'hidden';
+    setKeyboardState('hidden');
+    
+    // Step 4: Always show keyboard after a tiny delay
+    setTimeout(() => {
+      handleInputFocus();
+    }, 50); // Small delay to ensure state is reset
   };
 
   const renderEnterpriseKeyboard = () => {
@@ -993,7 +969,6 @@ navigation.navigate('AuthWelcome')
   };
 
   const setupScene = async (gl: any): Promise<void> => {
-    
     const renderer = new Renderer({ gl });
     (renderer as any).setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
     (renderer as any).setClearColor(0x000000, 0); // Transparent background to show GradientBackground
@@ -1008,7 +983,6 @@ navigation.navigate('AuthWelcome')
       1000
     );
     camera.position.set(5, 9.75, 0);
-    
 
     // Enhanced lighting setup
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -1173,9 +1147,9 @@ navigation.navigate('AuthWelcome')
           float cosTheta = dot(viewDir, lightDir);
           float scattering = 1.0 + cosTheta * cosTheta;
           
-          // Enhanced atmospheric rim lighting
+          // Atmospheric rim lighting
           float rimLight = 1.0 - max(dot(viewDir, normal), 0.0);
-          rimLight = pow(rimLight, 2.0) * atmosphereDensity * 2.0; // More visible atmosphere
+          rimLight = pow(rimLight, 3.0) * atmosphereDensity;
           
           // Final color composition
           vec3 finalColor = surfaceColor * (0.1 + 0.9 * NdotL); // Ambient + diffuse
@@ -1259,10 +1233,10 @@ navigation.navigate('AuthWelcome')
     gridGeometry.setIndex(indices);
     
     const gridMaterial = new THREE.LineBasicMaterial({
-      color: 0x666666,
+      color: 0x474747,
       transparent: true,
-      opacity: 0.9,
-      linewidth: 2.0,
+      opacity: 0.8,
+      linewidth: 1.75,
       blending: THREE.AdditiveBlending,
     });
 
@@ -1394,11 +1368,11 @@ navigation.navigate('AuthWelcome')
         // Wave function interference pattern (enhanced)
         float waveFunction = sin(distance * 40.0 - time * 5.0) * 0.3 + 0.9;
         
-        // Enhanced quantum effects for better visibility
-        float finalAlpha = probability * uncertainty * waveFunction * vOpacity * 2.0;
+        // Combine quantum effects with increased brightness
+        float finalAlpha = probability * uncertainty * waveFunction * vOpacity * 1.5;
         
-        // Enhanced energy level glow with color variation
-        vec3 glowColor = vColor * (1.8 + sin(time * 3.0) * 0.7);
+        // Add energy level glow (brighter)
+        vec3 glowColor = vColor * (1.5 + sin(time * 3.0) * 0.5);
         
         gl_FragColor = vec4(glowColor, finalAlpha);
       }
@@ -1444,276 +1418,11 @@ navigation.navigate('AuthWelcome')
 
     const clock = new THREE.Clock();
 
-    // ========================================================================================
-    // IRANVERSE LOGO BILLBOARD - Always faces camera
-    // ========================================================================================
-    
-    // ========================================================================================
-    // IRANVERSE PARTICLE LOGO SYSTEM - Revolutionary 3D Effect
-    // ========================================================================================
-    
-    // Define logo shape points (simplified iN logo representation)
-    const createLogoPoints = () => {
-      const points = [];
-      
-      // Scale factor for larger logo
-      const scale = 2.0;
-      
-      // Letter "i" shape points
-      // Vertical line
-      for (let y = -0.5; y <= 0.3; y += 0.05) {
-        points.push(new THREE.Vector3(-0.4 * scale, y * scale, 0));
-      }
-      // Dot on i
-      const dotRadius = 0.08 * scale;
-      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
-        points.push(new THREE.Vector3(
-          -0.4 * scale + Math.cos(angle) * dotRadius,
-          0.5 * scale + Math.sin(angle) * dotRadius,
-          0
-        ));
-      }
-      
-      // Letter "N" shape points
-      // Left vertical
-      for (let y = -0.5; y <= 0.5; y += 0.05) {
-        points.push(new THREE.Vector3(0, y * scale, 0));
-      }
-      // Diagonal
-      for (let t = 0; t <= 1; t += 0.05) {
-        points.push(new THREE.Vector3(
-          t * 0.4 * scale,
-          (0.5 - t) * scale,
-          0
-        ));
-      }
-      // Right vertical
-      for (let y = -0.5; y <= 0.5; y += 0.05) {
-        points.push(new THREE.Vector3(0.4 * scale, y * scale, 0));
-      }
-      
-      return points;
-    };
-    
-    // Create particle system for logo
-    const logoPoints = createLogoPoints();
-    const particleCount = logoPoints.length * 5; // More particles for visibility
-    
-    // Particle attributes
-    const logoParticlePositions = new Float32Array(particleCount * 3);
-    const logoParticleTargets = new Float32Array(particleCount * 3);
-    const logoParticleColors = new Float32Array(particleCount * 3);
-    const logoParticleSizes = new Float32Array(particleCount);
-    const logoParticleRandoms = new Float32Array(particleCount);
-    
-    // Initialize particles
-    for (let i = 0; i < particleCount; i++) {
-      const pointIndex = i % logoPoints.length;
-      const targetPoint = logoPoints[pointIndex];
-      
-      // Random starting positions (scattered in sphere)
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI;
-      const radius = Math.random() * 0.8;
-      
-      logoParticlePositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      logoParticlePositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      logoParticlePositions[i * 3 + 2] = radius * Math.cos(phi);
-      
-      // Target positions (logo shape)
-      logoParticleTargets[i * 3] = targetPoint.x;
-      logoParticleTargets[i * 3 + 1] = targetPoint.y;
-      logoParticleTargets[i * 3 + 2] = targetPoint.z;
-      
-      // Orange color with variation
-      const colorVariation = 0.8 + Math.random() * 0.2;
-      logoParticleColors[i * 3] = 0.925 * colorVariation; // R
-      logoParticleColors[i * 3 + 1] = 0.376 * colorVariation; // G
-      logoParticleColors[i * 3 + 2] = 0.165 * colorVariation; // B
-      
-      // Particle sizes - MUCH LARGER
-      logoParticleSizes[i] = 0.1 + Math.random() * 0.1; // 5x larger
-      
-      // Random values for animation
-      logoParticleRandoms[i] = Math.random();
-    }
-    
-    // Create geometry and material
-    const logoParticleGeometry = new THREE.BufferGeometry();
-    logoParticleGeometry.setAttribute('position', new THREE.BufferAttribute(logoParticlePositions, 3));
-    logoParticleGeometry.setAttribute('targetPosition', new THREE.BufferAttribute(logoParticleTargets, 3));
-    logoParticleGeometry.setAttribute('color', new THREE.BufferAttribute(logoParticleColors, 3));
-    logoParticleGeometry.setAttribute('size', new THREE.BufferAttribute(logoParticleSizes, 1));
-    logoParticleGeometry.setAttribute('random', new THREE.BufferAttribute(logoParticleRandoms, 1));
-    
-    // Particle shader material
-    const logoParticleMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        convergence: { value: 0 }, // 0 = scattered, 1 = formed logo
-        glowIntensity: { value: 1.0 }
-      },
-      vertexShader: `
-        attribute vec3 targetPosition;
-        attribute float size;
-        attribute float random;
-        
-        uniform float time;
-        uniform float convergence;
-        
-        varying vec3 vColor;
-        varying float vRandom;
-        
-        void main() {
-          vColor = color;
-          vRandom = random;
-          
-          // Interpolate between random position and target
-          vec3 pos = mix(position, targetPosition, convergence);
-          
-          // Add floating animation when converged
-          float floatOffset = sin(time * 2.0 + random * 6.28) * 0.02 * convergence;
-          pos.y += floatOffset;
-          
-          vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = size * (600.0 / -mvPosition.z); // Double the size
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform float glowIntensity;
-        
-        varying vec3 vColor;
-        varying float vRandom;
-        
-        void main() {
-          vec2 center = gl_PointCoord - vec2(0.5);
-          float distance = length(center);
-          
-          // Soft particle with glow
-          float alpha = 1.0 - smoothstep(0.0, 0.5, distance);
-          alpha *= glowIntensity * (0.8 + 0.2 * vRandom);
-          
-          // Add core brightness
-          float core = 1.0 - smoothstep(0.0, 0.2, distance);
-          vec3 finalColor = vColor + vec3(core * 0.5);
-          
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      vertexColors: true
-    });
-    
-    // Create particle system
-    const logoParticleSystem = new THREE.Points(logoParticleGeometry, logoParticleMaterial);
-    logoParticleSystem.position.set(0, 0, 0); // Center of sphere
-    // Commented out - using 2D logo instead
-    // scene.add(logoParticleSystem);
-    
-    // Animation state
-    const logoAnimationState = {
-      convergence: 0,
-      targetConvergence: 0,
-      animationSpeed: 0.02
-    };
-    
-    // Store references
-    const logoRef = { 
-      particleSystem: logoParticleSystem,
-      material: logoParticleMaterial,
-      animationState: logoAnimationState
-    };
-    
-    // Store in component ref for access in pan handlers
-    logoAnimationRef.current = logoRef;
-    
-    // Particle logo system created successfully
-    
-    // Trigger logo formation after delay
-    setTimeout(() => {
-      if (logoRef.animationState) {
-        logoRef.animationState.targetConvergence = 1; // Form the logo
-        // Triggering particle logo convergence
-      }
-    }, 2000); // 2 second delay
-    
-    // ========================================================================================
-    // 2D LOGO SYSTEM - Simple and Delicate
-    // ========================================================================================
-    
-    // Create a plane for the 2D logo
-    const logoPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
-    
-    // Load the actual logo texture
-    const textureLoader = new THREE.TextureLoader();
-    const logoTexture = textureLoader.load(
-      Asset.fromModule(require('../../assets/logo/iranverse-logo-black.png')).uri
-    );
-    
-    // Create material with the logo texture
-    const logo2DMaterial = new THREE.MeshBasicMaterial({
-      map: logoTexture,
-      transparent: true,
-      opacity: 0,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-      depthTest: false,
-      alphaTest: 0.1
-    });
-    
-    const logo2DMesh = new THREE.Mesh(logoPlaneGeometry, logo2DMaterial);
-    logo2DMesh.position.set(0, 0, 0); // Center of sphere
-    scene.add(logo2DMesh);
-    
-    // Logo animation state
-    const logo2DState = {
-      opacity: 0,
-      targetOpacity: 0,
-      animationPhase: 'hidden' as 'hidden' | 'fadingIn' | 'visible' | 'fadingOut',
-      phaseStartTime: 0
-    };
-    
-    // Start logo fade in after 3 seconds
-    setTimeout(() => {
-      logo2DState.animationPhase = 'fadingIn';
-      logo2DState.targetOpacity = 1;
-      logo2DState.phaseStartTime = Date.now();
-    }, 3000);
-    
-    
-    // Store references for animation
-    const logo2DRef = {
-      mesh: logo2DMesh,
-      material: logo2DMaterial,
-      state: logo2DState
-    };
-    
-    // Store all scene references in a single object
-    const sceneData = {
-      scene,
-      camera,
-      renderer,
-      quantumField,
-      mars,
-      grid,
-      quantumParticles,
-      logoRef,
-      logo2DRef
-    };
-    
-    // Store in ref for access from other functions
-    sceneDataRef.current = sceneData;
-
     // Load audio file after scene setup
     await loadAudioFile();
 
     const animate = (): void => {
       const elapsed = clock.getElapsedTime();
-      
 
       // Update Mars shader time and lighting
       if (marsMaterial.uniforms.uTime) {
@@ -1995,10 +1704,8 @@ navigation.navigate('AuthWelcome')
       // Update smooth camera interpolation and momentum
       updateSmoothCameraInterpolation();
 
-      // 2D SIN wave animation - optimized with less frequent updates
-      const updateWaves = elapsed % 0.033 < 0.016; // Update ~30fps instead of 60fps
-      if (updateWaves) {
-        for (let i = 0; i < positionAttr.count; i++) {
+      // 2D SIN wave animation - emanating from beneath main sphere
+      for (let i = 0; i < positionAttr.count; i++) {
         const x = positionAttr.getX(i);
         const z = positionAttr.getZ(i);
         const y0 = baseY[i * 3 + 1];
@@ -2018,9 +1725,8 @@ navigation.navigate('AuthWelcome')
         const finalWaveHeight = waveHeight * fadeDistance;
         
         positionAttr.setY(i, y0 + finalWaveHeight);
-        }
-        positionAttr.needsUpdate = true;
       }
+      positionAttr.needsUpdate = true;
 
       // Quantum Field Animation with Smooth Beat Sync
       const quantumTime = elapsed * 0.5;
@@ -2052,12 +1758,8 @@ navigation.navigate('AuthWelcome')
         quantumMaterial.uniforms.vacuumFluctuation.value = baseFluctuation * beatMultiplier;
       }
 
-      // Optimize: Update particles less frequently
-      const updateParticles = elapsed % 0.016 < 0.008; // Update every other frame
-      
-      if (updateParticles) {
-        for (let i = 0; i < quantumParticleCount; i++) {
-          const particle = quantumParticles[i];
+      for (let i = 0; i < quantumParticleCount; i++) {
+        const particle = quantumParticles[i];
         
         // SMOOTH Beat-Synced Quantum State Transitions
         const uncertaintyFactor = Math.sin(elapsed * 2.0 + particle.phase) * uncertaintyPrinciple;
@@ -2202,14 +1904,13 @@ navigation.navigate('AuthWelcome')
         // Smooth size fluctuation with beat sync
         const sizeFluctuation = 1.0 + uncertaintyFactor * 0.5;
         quantumSizes[i] = (0.04 + particle.energyLevel * 0.06) * sizeFluctuation * sizeMultiplier;
-        }
-
-        // Update geometry attributes only when particles are updated
-        quantumGeometry.attributes.position.needsUpdate = true;
-        quantumGeometry.attributes.color.needsUpdate = true;
-        quantumGeometry.attributes.size.needsUpdate = true;
-        quantumGeometry.attributes.opacity.needsUpdate = true;
       }
+
+      // Update geometry attributes
+      quantumGeometry.attributes.position.needsUpdate = true;
+      quantumGeometry.attributes.color.needsUpdate = true;
+      quantumGeometry.attributes.size.needsUpdate = true;
+      quantumGeometry.attributes.opacity.needsUpdate = true;
 
       // Oscillate cone light
       const lightY = sphereRadius + Math.abs(Math.sin(elapsed * 0.33)) * coneHeight;
@@ -2228,74 +1929,6 @@ navigation.navigate('AuthWelcome')
       );
       camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-      // Update particle logo animation
-      if (logoRef.particleSystem && logoRef.material && logoRef.animationState) {
-        // Update time uniform
-        logoRef.material.uniforms.time.value = elapsed;
-        
-        // Smooth convergence animation
-        const { animationState } = logoRef;
-        if (animationState.convergence !== animationState.targetConvergence) {
-          const delta = animationState.targetConvergence - animationState.convergence;
-          animationState.convergence += delta * animationState.animationSpeed;
-          
-          // Update shader uniform
-          logoRef.material.uniforms.convergence.value = animationState.convergence;
-        }
-        
-        // Rotate the entire particle system slowly
-        logoRef.particleSystem.rotation.y = elapsed * 0.1;
-      }
-      
-      // Update 2D logo animation
-      if (logo2DRef.mesh && logo2DRef.material && logo2DRef.state) {
-        const now = Date.now();
-        const state = logo2DRef.state;
-        
-        // Make logo always face camera
-        logo2DRef.mesh.lookAt(camera.position);
-        
-        // Handle animation phases
-        switch (state.animationPhase) {
-          case 'fadingIn':
-            const fadeInProgress = (now - state.phaseStartTime) / 3000; // 3 seconds fade in
-            state.opacity = Math.min(fadeInProgress, 1);
-            if (fadeInProgress >= 1) {
-              state.animationPhase = 'visible';
-              state.phaseStartTime = now;
-            }
-            break;
-            
-          case 'visible':
-            state.opacity = 1;
-            // Stay visible for 3 seconds
-            if (now - state.phaseStartTime >= 3000) {
-              state.animationPhase = 'fadingOut';
-              state.phaseStartTime = now;
-            }
-            break;
-            
-          case 'fadingOut':
-            const fadeOutProgress = (now - state.phaseStartTime) / 3000; // 3 seconds fade out
-            state.opacity = 1 - Math.min(fadeOutProgress, 1);
-            if (fadeOutProgress >= 1) {
-              state.animationPhase = 'hidden';
-              state.phaseStartTime = now;
-              // Restart cycle after 2 seconds
-              setTimeout(() => {
-                state.animationPhase = 'fadingIn';
-                state.phaseStartTime = Date.now();
-              }, 2000);
-            }
-            break;
-        }
-        
-        // Apply opacity
-        logo2DRef.material.opacity = state.opacity;
-      }
-      
-
-      
       (renderer as any).render(scene, camera);
       gl.endFrameEXP();
       requestAnimationFrame(animate);
@@ -2402,23 +2035,6 @@ navigation.navigate('AuthWelcome')
         gestureState.panVelocityY = 0;
         gestureState.zoomVelocity = 0;
       }
-      
-      // Commented out particle logo dispersal - now using 2D logo
-      // if (logoAnimationRef.current?.animationState) {
-      //   logoAnimationRef.current.animationState.targetConvergence = 0; // Disperse
-      //   
-      //   // Clear any existing timeout
-      //   if (logoAnimationRef.current.reconvergeTimeout) {
-      //     clearTimeout(logoAnimationRef.current.reconvergeTimeout);
-      //   }
-      //   
-      //   // Re-converge after delay
-      //   logoAnimationRef.current.reconvergeTimeout = setTimeout(() => {
-      //     if (logoAnimationRef.current?.animationState) {
-      //       logoAnimationRef.current.animationState.targetConvergence = 1;
-      //     }
-      //   }, 3000);
-      // }
       
       showControlsTemporarily();
     },
@@ -2575,26 +2191,11 @@ navigation.navigate('AuthWelcome')
       <GLView
         ref={glViewRef}
         style={styles.glView}
-        onContextCreate={async (gl) => {
-          try {
-            glViewRef.current = { gl };
-            await setupScene(gl);
-          } catch (error) {
-            // Error handled silently in production
-          }
+        onContextCreate={(gl) => {
+          glViewRef.current = { gl };
+          setupScene(gl);
         }}
       />
-      
-      {/* NEW: SVG Logo Overlay */}
-      <View style={styles.logoOverlay} pointerEvents="none">
-        <AnimatedIranverseLogo
-          size={100}
-          variant="brand"
-          animationMode="pulse"
-          autoStart={true}
-        />
-      </View>
-      
       
       {/* IRANVERSE Title - High-tech minimal design - NEVER MOVES */}
       <Animated.View style={[
@@ -2673,13 +2274,25 @@ navigation.navigate('AuthWelcome')
               placeholder={keyboardLanguage === 'english' ? "Insert your code..." : "رمز ورود را وارد کنید..."}
               placeholderTextColor="rgba(140, 140, 140, 0.7)"
               selectionColor="rgba(255, 255, 255, 0.8)"
-              autoCapitalize="none"
+              autoCapitalize="sentences"
               autoCorrect={false}
               blurOnSubmit={false}
               showSoftInputOnFocus={false} // Disable native keyboard
               caretHidden={keyboardState === 'hidden'} // Cursor state synchronization
               editable={false} // Prevent native focus - use TouchableOpacity only
+              accessible={false} // Hide from accessibility tree
               pointerEvents="none" // TouchableOpacity handles all interactions
+              {...Platform.select({
+                ios: {
+                  keyboardType: 'default',
+                  autoComplete: 'off',
+                  textContentType: 'none',
+                  contextMenuHidden: true
+                },
+                android: {
+                  importantForAutofill: 'no'
+                }
+              })}
             />
           </Animated.View>
         </TouchableOpacity>
@@ -2759,13 +2372,6 @@ const styles = StyleSheet.create({
     left: 6,
     right: 0,
     zIndex: 999,
-    alignItems: 'center',
-  },
-  logoOverlay: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
     alignItems: 'center',
   },
   titleText: {

@@ -11,6 +11,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { ThemeProvider } from './src/shared/theme/ThemeProvider';
 // Startup verification
 import { verifyStartup, StartupResult } from './src/core/utils/startupVerification';
+// Global error handler
+import { errorHandler } from './src/core/utils/errorHandler';
 
 // ========================================================================================
 // ENTERPRISE NAVIGATION TYPES - CENTRALIZED TYPE SAFETY
@@ -258,7 +260,7 @@ const AppNavigation: React.FC = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Showcase" // Start with showcase screen
+        initialRouteName="First" // Start with First screen
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
@@ -304,8 +306,9 @@ const AppNavigation: React.FC = () => {
           name="AuthWelcome" 
           component={AuthWelcomeScreen}
           options={{
-            ...TransitionConfigs.auth,
-            animationDuration: 350,
+            gestureEnabled: false,
+            animation: 'fade',
+            animationDuration: 1200, // Extended for smooth transition (Solution 1)
           }}
         />
         
@@ -392,6 +395,14 @@ export default function App() {
   useEffect(() => {
     const runStartupVerification = async () => {
       try {
+        // Initialize global error handler
+        errorHandler.initialize({
+          metadata: {
+            appVersion: '1.0.0',
+            platform: 'mobile',
+          },
+        });
+        
         const result = await verifyStartup();
         setStartupResult(result);
         
@@ -399,6 +410,10 @@ export default function App() {
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Startup verification failed:', error);
+        errorHandler.captureError(error as Error, {
+          severity: 'critical',
+          context: { phase: 'startup' },
+        });
         setStartupResult({
           success: false,
           failedChecks: ['Startup verification system failed'],

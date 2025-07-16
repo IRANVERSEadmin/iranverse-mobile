@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { View, ScrollView, Text, StyleSheet } from 'react-native';
-import Icon from '../ui/Icon';
+import Icon from '../../shared/components/ui/Icon';
 import SmartIcon, { 
   SmartSearchIcon, 
   SmartBackIcon, 
@@ -16,9 +16,9 @@ import SmartIcon, {
   SmartGoogleIcon,
   SmartAppleIcon,
   SmartTwitterIcon
-} from '../ui/SmartIcon';
-import { ICON_CONFIG } from '../ui/IconConfig';
-import { useTheme } from '../ui/theme/ThemeProvider';
+} from '../../shared/components/ui/SmartIcon';
+import { ICON_CONFIG } from '../../shared/components/ui/IconConfig';
+import { useTheme } from '../../shared/theme/ThemeProvider';
 
 const IconExample: React.FC = () => {
   const theme = useTheme();

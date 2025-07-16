@@ -12,17 +12,17 @@ import {
   BackHandler,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { RootStackParamList } from '../../../../App';
 
 // Enterprise Component Library
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Text from '../../components/ui/Text';
-import Button from '../../components/ui/Button';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Text from '../../../shared/components/ui/Text';
+import Button from '../../../shared/components/ui/Button';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // Auth Components
-import AuthHeader from '../../components/auth/AuthHeader';
+import AuthHeader from '../components/AuthHeader';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE ERROR HANDLING
@@ -90,9 +90,7 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
   
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
   
   // Animation Values with cleanup
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -164,7 +162,7 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
       // Content fade in
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: animations.duration.normal,
+        duration: animations.duration.medium,
         useNativeDriver: true,
       }).start();
       
@@ -272,8 +270,8 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
               }
             ]}
           >
-            <View style={[styles.errorIcon, { backgroundColor: colors.semantic.error + '20' }]}>
-              <Text style={[styles.errorIconText, { color: colors.semantic.error }]}>
+            <View style={[styles.errorIcon, { backgroundColor: colors.accent.critical + '20' }]}>
+              <Text style={[styles.errorIconText, { color: colors.accent.critical }]}>
                 {errorConfig.icon}
               </Text>
             </View>
@@ -284,7 +282,7 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
             <Text
               variant="h2"
               align="center"
-              style={[styles.errorTitle, { color: colors.interactive.text }]}
+              style={[styles.errorTitle, { color: colors.interactive.text.primary }]}
             >
               {errorConfig.title}
             </Text>
@@ -292,18 +290,18 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
             <Text
               variant="body"
               align="center"
-              style={[styles.errorDescription, { color: colors.interactive.textSecondary }]}
+              style={[styles.errorDescription, { color: colors.interactive.text.secondary }]}
             >
               {errorConfig.description}
             </Text>
             
             {/* Show specific error details if available */}
             {error && error !== errorConfig.description && (
-              <View style={[styles.errorDetailsContainer, { backgroundColor: colors.semantic.error + '10' }]}>
+              <View style={[styles.errorDetailsContainer, { backgroundColor: colors.accent.critical + '10' }]}>
                 <Text
                   variant="caption"
                   align="center"
-                  style={[styles.errorDetails, { color: colors.semantic.error }]}
+                  style={[styles.errorDetails, { color: colors.accent.critical }]}
                 >
                   Error: {error}
                 </Text>
@@ -315,7 +313,7 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
               <Text
                 variant="bodySmall"
                 align="center"
-                style={[styles.emailText, { color: colors.interactive.textSecondary }]}
+                style={[styles.emailText, { color: colors.interactive.text.secondary }]}
               >
                 Email: {email}
               </Text>
@@ -354,7 +352,7 @@ const VerificationErrorScreen: React.FC<VerificationErrorScreenProps> = ({ navig
             <Text
               variant="caption"
               align="center"
-              style={[styles.helpText, { color: colors.interactive.textSecondary }]}
+              style={[styles.helpText, { color: colors.interactive.text.secondary }]}
             >
               Still having trouble? Contact our support team for assistance.
             </Text>

@@ -12,7 +12,7 @@ import {
   ColorSchemeName,
   useColorScheme,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // ENTERPRISE LOGO SYSTEM - PRODUCTION CONSTANTS
@@ -20,9 +20,9 @@ import { useTheme } from '../theme/ThemeProvider';
 
 // Logo Asset Registry - Production Ready PNG Assets
 const LOGO_ASSETS = {
-  black: require('../../../assets/logo/iranverse-logo-black.png'),
-  white: require('../../../assets/logo/iranverse-logo-white.png'),
-  gray: require('../../../assets/logo/iranverse-logo-gray.png'),
+  black: require('../../../../assets/logo/iranverse-logo-black.png'),
+  white: require('../../../../assets/logo/iranverse-logo-white.png'),
+  gray: require('../../../../assets/logo/iranverse-logo-gray.png'),
 } as const;
 
 // Professional Size System - Button to Hero Scale

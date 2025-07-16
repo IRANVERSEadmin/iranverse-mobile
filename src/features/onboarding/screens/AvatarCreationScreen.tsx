@@ -17,13 +17,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // IRANVERSE Components
-import SafeArea from '../../components/ui/SafeArea';
-import GradientBackground from '../../components/ui/GradientBackground';
-import Loader from '../../components/ui/Loader';
-import Button from '../../components/ui/Button';
-import Text from '../../components/ui/Text';
-import Toast, { toast } from '../../components/ui/Toast';
-import { useTheme, useColors, useSpacing, useAnimations } from '../../components/theme/ThemeProvider';
+import SafeArea from '../../../shared/components/layout/SafeArea';
+import GradientBackground from '../../../shared/components/layout/GradientBackground';
+import Loader from '../../../shared/components/ui/Loader';
+import Button from '../../../shared/components/ui/Button';
+import Text from '../../../shared/components/ui/Text';
+import ToastProvider, { useToast } from '../../../shared/components/ui/Toast';
+import { useTheme } from '../../../shared/theme/ThemeProvider';
 
 // ========================================================================================
 // TYPES & INTERFACES - ENTERPRISE AVATAR SYSTEM
@@ -78,7 +78,7 @@ interface AvatarCreationState {
 // AVATAR CREATION SCREEN - REVOLUTIONARY IDENTITY FORMATION
 // ========================================================================================
 
-const AvatarCreationScreen: React.FC = () => {
+const AvatarCreationScreenContent: React.FC = () => {
   // Navigation & Route
   const navigation = useNavigation<AvatarCreationScreenNavigationProp>();
   const route = useRoute<AvatarCreationScreenRouteProp>();
@@ -86,9 +86,7 @@ const AvatarCreationScreen: React.FC = () => {
 
   // Theme System
   const theme = useTheme();
-  const colors = useColors();
-  const spacing = useSpacing();
-  const animations = useAnimations();
+  const { colors, spacing, animations } = theme;
 
   // Screen Dimensions
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -620,11 +618,10 @@ const AvatarCreationScreen: React.FC = () => {
   const renderLoading = () => (
     <View style={styles.loadingContainer}>
       <Loader
-        variant="orbital"
+        variant="quantum"
         size="large"
         text="Creating Your Avatar..."
-        subtext="This may take a moment"
-        color={colors.interactive.text}
+        color={colors.interactive.text.primary}
       />
     </View>
   );
@@ -635,8 +632,7 @@ const AvatarCreationScreen: React.FC = () => {
         variant="quantum"
         size="large"
         text="Processing Avatar..."
-        subtext="Finalizing your digital identity"
-        color={colors.semantic.success}
+        color={colors.accent.success}
       />
     </View>
   );
@@ -682,11 +678,6 @@ const AvatarCreationScreen: React.FC = () => {
           {state.isProcessing && renderProcessing()}
         </View>
 
-        {/* Toast Container */}
-        <Toast 
-          visible={state.toastVisible}
-          message={state.toastMessage}
-        />
       </GradientBackground>
     </SafeArea>
   );
@@ -777,5 +768,14 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
 });
+
+// Main AvatarCreationScreen component wrapped with ToastProvider
+const AvatarCreationScreen: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AvatarCreationScreenContent />
+    </ToastProvider>
+  );
+};
 
 export default AvatarCreationScreen;

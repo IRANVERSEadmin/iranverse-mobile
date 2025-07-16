@@ -3,11 +3,11 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import GradientBackground from '../components/ui/GradientBackground';
-import SafeArea from '../components/ui/SafeArea';
-import { Button, GrokAuthButton } from '../components/ui/Button';
-import { H1, Body } from '../components/ui/Text';
-import SmartIcon from '../components/ui/SmartIcon';
+import GradientBackground from '../../shared/components/layout/GradientBackground';
+import SafeArea from '../../shared/components/layout/SafeArea';
+import { Button, GrokAuthButton } from '../../shared/components/ui/Button';
+import { H1, Body } from '../../shared/components/ui/Text';
+import SmartIcon from '../../shared/components/ui/SmartIcon';
 
 const ButtonTest: React.FC = () => {
   return (
@@ -24,7 +24,7 @@ const ButtonTest: React.FC = () => {
               onPress={() => {}}
               fullWidth
               style={styles.button}
-              providerIcon={<SmartIcon name="x" size={20} color="#FFFFFF" />}
+              providerIcon={<SmartIcon name="close" size={20} color="#FFFFFF" />}
             >
               Continue with X
             </GrokAuthButton>

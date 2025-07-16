@@ -14,13 +14,13 @@ import {
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Import components
-import GradientBackground from '../components/ui/GradientBackground';
-import GrokButton from '../components/ui/GrokButton';
-import { H1, H2, H3, Body, Caption } from '../components/ui/Text';
-import SafeArea from '../components/ui/SafeArea';
-import SmartIcon from '../components/ui/SmartIcon';
-import { ThemeProvider, useTheme } from '../components/theme/ThemeProvider';
-import { GrokDarkCard } from '../components/ui/Card';
+import GradientBackground from '../../shared/components/layout/GradientBackground';
+import GrokButton from '../../shared/components/ui/GrokButton';
+import { H1, H2, H3, Body, Caption } from '../../shared/components/ui/Text';
+import SafeArea from '../../shared/components/layout/SafeArea';
+import SmartIcon from '../../shared/components/ui/SmartIcon';
+import { ThemeProvider, useTheme } from '../../shared/theme/ThemeProvider';
+import { GrokDarkCard } from '../../shared/components/ui/Card';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -194,7 +194,7 @@ const GrokShowcaseContent: React.FC = () => {
           onPress={() => handleButtonPress('Continue with X')}
           fullWidth
           leftIcon={
-            <SmartIcon name="x-twitter" size={20} color="#FFFFFF" />
+            <SmartIcon name="twitter" size={20} color="#FFFFFF" />
           }
         >
           Continue with X
@@ -289,7 +289,7 @@ const GrokShowcaseContent: React.FC = () => {
             onPress={() => handleButtonPress('Notifications')}
             style={styles.iconButton}
           >
-            <SmartIcon name="bell" size={20} color="#FFFFFF" />
+            <SmartIcon name="notification" size={20} color="#FFFFFF" />
           </GrokButton>
           
           <GrokButton
@@ -325,7 +325,7 @@ const GrokShowcaseContent: React.FC = () => {
           onPress={() => handleButtonPress('Upgrade')}
           fullWidth
           leftIcon={
-            <SmartIcon name="zap" size={20} color="#EC602A" />
+            <SmartIcon name="star" size={20} color="#EC602A" />
           }
           style={styles.upgradeButton}
         >

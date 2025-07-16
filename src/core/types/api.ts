@@ -2,8 +2,8 @@
 // IRANVERSE Enterprise API Types & Contracts
 // Complete type safety for all backend communications
 // Built for 90M users - RESTful + GraphQL Ready
-import { AuthTokens, AuthenticatedUser } from './auth';
-import { AvatarState } from './avatar';
+import { AuthTokens, AuthenticatedUser } from '../../features/auth/types';
+import { AvatarState } from '../../features/avatar/types';
 
 // ========================================================================================
 // CORE API TYPES - ENTERPRISE HTTP COMMUNICATION

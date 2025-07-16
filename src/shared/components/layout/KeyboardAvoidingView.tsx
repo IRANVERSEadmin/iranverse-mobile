@@ -14,7 +14,7 @@ import {
   EmitterSubscription,
   Easing,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // KEYBOARD TYPES & INTERFACES - ENTERPRISE FORM SYSTEM

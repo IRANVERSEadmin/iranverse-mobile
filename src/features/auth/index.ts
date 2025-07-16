@@ -20,7 +20,7 @@ export { default as VerificationErrorScreen } from './screens/VerificationErrorS
 export { default as useAuth } from './hooks/useAuth';
 
 // Context
-export { AuthContext, AuthProvider } from './contexts/AuthContext';
+export { default as AuthContext, AuthProvider, useAuthContext } from './contexts/AuthContext';
 
 // Types
-export * from './types';
+export type { AuthenticatedUser, AuthState, AuthError } from './types';

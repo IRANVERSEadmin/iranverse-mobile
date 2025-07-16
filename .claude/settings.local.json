@@ -15,7 +15,18 @@
       "Bash(ls:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(cp:*)",
+      "Bash(npx react-native start:*)",
+      "Bash(rm:*)",
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(npm ls:*)",
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(npm start:*)",
+      "Bash(npx kill-port:*)"
     ],
     "deny": []
   }

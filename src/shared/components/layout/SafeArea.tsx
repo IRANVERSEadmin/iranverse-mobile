@@ -10,7 +10,7 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
-import { useTheme } from '../theme/ThemeProvider';
+import { useTheme } from '../../theme/ThemeProvider';
 
 // ========================================================================================
 // SAFE AREA TYPES & INTERFACES - ENTERPRISE LAYOUT SYSTEM

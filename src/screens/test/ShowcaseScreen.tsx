@@ -18,7 +18,7 @@ import {
 } from 'react-native-safe-area-context';
 
 // Import all UI components
-import AnimatedLogo from '../components/ui/AnimatedLogo';
+import AnimatedLogo from '../../shared/components/ui/AnimatedLogo';
 import Button, { 
   GrokAuthButton, 
   ButtonRef,
@@ -32,37 +32,37 @@ import Button, {
   GoogleAuthButton,
   AppleAuthButton,
   IranverseAuthButton
-} from '../components/ui/Button';
-import Card, { InteractiveCard, GlassCard, GrokDarkCard } from '../components/ui/Card';
-import EmailInput from '../components/ui/EmailInput';
-import FieldError from '../components/ui/FieldError';
-import GradientBackground from '../components/ui/GradientBackground';
-import Header, { TabHeader } from '../components/ui/Header';
-import Heading from '../components/ui/Heading';
-import Input from '../components/ui/Input';
-import KeyboardAvoidingView from '../components/ui/KeyboardAvoidingView';
-import Loader from '../components/ui/Loader';
-import Logo from '../components/ui/Logo';
-import LogoWatermark from '../components/ui/LogoWatermark';
-import PasswordField from '../components/ui/PasswordField';
-import PersianInput from '../components/ui/PersianInput';
-import PhoneInput from '../components/ui/PhoneInput';
-import SafeArea from '../components/ui/SafeArea';
-import Text, { H1, H2, H3, Body, Caption, PersianText, ErrorText, SuccessText, Link } from '../components/ui/Text';
-import { ToastProvider, useToast } from '../components/ui/Toast';
-import ValidationMessage from '../components/ui/ValidationMessage';
-import SmartIcon, { SmartSearchIcon, SmartGoogleIcon, SmartAppleIcon, SmartTwitterIcon } from '../components/ui/SmartIcon';
-import GrokButton from '../components/ui/GrokButton';
+} from '../../shared/components/ui/Button';
+import Card, { InteractiveCard, GlassCard, GrokDarkCard } from '../../shared/components/ui/Card';
+import EmailInput from '../../shared/components/forms/EmailInput';
+import FieldError from '../../shared/components/forms/FieldError';
+import GradientBackground from '../../shared/components/layout/GradientBackground';
+import Header, { TabHeader } from '../../shared/components/layout/Header';
+import Heading from '../../shared/components/ui/Heading';
+import Input from '../../shared/components/forms/Input';
+import KeyboardAvoidingView from '../../shared/components/layout/KeyboardAvoidingView';
+import Loader from '../../shared/components/ui/Loader';
+import Logo from '../../shared/components/ui/Logo';
+import LogoWatermark from '../../shared/components/ui/LogoWatermark';
+import PasswordField from '../../shared/components/forms/PasswordField';
+import PersianInput from '../../shared/components/forms/PersianInput';
+import PhoneInput from '../../shared/components/forms/PhoneInput';
+import SafeArea from '../../shared/components/layout/SafeArea';
+import Text, { H1, H2, H3, Body, Caption, PersianText, ErrorText, SuccessText, Link } from '../../shared/components/ui/Text';
+import { ToastProvider, useToast } from '../../shared/components/ui/Toast';
+import ValidationMessage from '../../shared/components/forms/ValidationMessage';
+import SmartIcon, { SmartSearchIcon, SmartGoogleIcon, SmartAppleIcon, SmartTwitterIcon } from '../../shared/components/ui/SmartIcon';
+import GrokButton from '../../shared/components/ui/GrokButton';
 
 // Import auth components
-import AuthFooter from '../components/auth/AuthFooter';
-import AuthHeader, { BrandedAuthHeader } from '../components/auth/AuthHeader';
-import OAuthButton, { GoogleOAuthButton, AppleOAuthButton } from '../components/auth/OAuthButton';
+import AuthFooter from '../../features/auth/components/AuthFooter';
+import AuthHeader, { BrandedAuthHeader } from '../../features/auth/components/AuthHeader';
+import OAuthButton, { GoogleOAuthButton, AppleOAuthButton } from '../../features/auth/components/OAuthButton';
 
 // Import theme
-import { ThemeProvider, useTheme } from '../components/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '../../shared/theme/ThemeProvider';
 // Import error boundary
-import ErrorBoundary from '../components/ErrorBoundary';
+import ErrorBoundary from '../../shared/components/ErrorBoundary';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
