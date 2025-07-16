@@ -1,42 +1,33 @@
-import { TouchableOpacity } from 'react-native';
-// src/screens/FirstScreen.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { 
   View, 
   StyleSheet, 
-  PanResponder, 
+  PanResponder,
+  PanResponderInstance,
+  GestureResponderEvent, 
   Dimensions, 
   Text,
   TextInput,
   Animated,
   Vibration,
   Platform,
-  BackHandler
+  BackHandler,
+  TouchableOpacity,
+  TextInput as TextInputType
 } from 'react-native';
 import { GLView } from 'expo-gl';
 import * as THREE from 'three';
 import { Renderer } from 'expo-three';
 import { Audio } from 'expo-av';
 import { Asset } from 'expo-asset';
-import type { 
-  PanResponderInstance,
-  GestureResponderEvent,
-  TextInput as TextInputType
-} from 'react-native';
 import GradientBackground from '../shared/components/layout/GradientBackground';
-import IranverseLogo from '../shared/components/ui/IranverseLogo';
 import AnimatedIranverseLogo from '../shared/components/ui/AnimatedIranverseLogo';
 
-// Enterprise keyboard state machine type
 type KeyboardState = 'hidden' | 'showing' | 'shown' | 'hiding';
-
-const { width, height } = Dimensions.get('window');
-
-// Enterprise Configuration Constants - Production Grade
-// Enterprise Navigation Props Interface
 type FirstScreenProps = NativeStackScreenProps<RootStackParamList, 'First'>;
+
 
 const CONFIG = {
   ANIMATION: {
@@ -71,11 +62,9 @@ const CONFIG = {
   }
 };
 
-const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
-  // Professional easing function (only the one we use)
+const FirstScreen: React.FC<FirstScreenProps> = () => {
   const easeInOutCubic = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-  // All refs
   const glViewRef = useRef<any>(null);
   const inputRef = useRef<TextInputType>(null);
   const cameraRadiusRef = useRef(10);
@@ -84,8 +73,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const logoAnimationRef = useRef<any>(null);
-  
-  // Enhanced gesture state management
   const gestureStateRef = useRef({
     isPanning: false,
     isZooming: false,
@@ -98,24 +85,18 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     momentumDecay: 0.95,
     lastTouchTime: 0,
   });
-  
-  // Smooth interpolation targets for momentum
   const targetAngleXRef = useRef(Math.atan2(5, 0));
   const targetAngleYRef = useRef(Math.acos(9.9 / 10));
   const targetRadiusRef = useRef(10);
-  
-  // Unified zoom bounds and constraints (used by all systems)
   const UNIFIED_CAMERA_BOUNDS = {
     minRadius: 3,
     maxRadius: 25,
     zoomSensitivity: 0.02,
     smoothFactor: 0.08,
-    maxVelocity: 0.1, // Prevent runaway momentum
-    maxDeltaTime: 100, // Clamp delta time for stability
+    maxVelocity: 0.1,
+    maxDeltaTime: 100,
     minDeltaTime: 1,
   };
-  
-  // Enhanced camera transition state with cinematic easing
   const cameraTransitionRef = useRef<{
     isTransitioning: boolean;
     startTime: number;
@@ -128,8 +109,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     targetAngleY: number;
     easeFunction: (t: number) => number;
   } | null>(null);
-  
-  // Parabolic orbit animation state
   const parabolicOrbitRef = useRef<{
     isActive: boolean;
     startTime: number;
@@ -138,125 +117,86 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     initialAngleX: number;
     initialAngleY: number;
   } | null>(null);
-  
-  // expo-av Audio System (React Native Compatible) + Beat Detection
   const soundRef = useRef<Audio.Sound | null>(null);
   const isAudioLoadedRef = useRef(false);
   const isAudioPlayingRef = useRef(false);
-  
-  // Beat detection and sync system - ENHANCED SMOOTH VERSION
   const audioAnalysisRef = useRef({
-    bpm: 120, // Default BPM - adjust based on your track
-    beatInterval: 500, // 120 BPM = 500ms per beat
+    bpm: 120,
+    beatInterval: 500,
     lastBeatTime: 0,
-    
-    // SMOOTH BEAT RESPONSE SYSTEM
-    currentBeatStrength: 0, // Current interpolated beat strength
-    targetBeatStrength: 0, // Target beat strength to interpolate toward
-    beatDecayRate: 0.015, // How fast beat effects fade (lower = slower decay)
-    beatBuildRate: 0.08, // How fast beat effects build up (higher = faster response)
-    
-    // MULTI-LAYER BEAT EFFECTS for organic response
-    quickPulse: 0, // Fast decay (0.5s) - for immediate visual impact
-    mediumWave: 0, // Medium decay (2s) - for sustained effects
-    slowResonance: 0, // Slow decay (5s) - for ambient background influence
-    
+    currentBeatStrength: 0,
+    targetBeatStrength: 0,
+    beatDecayRate: 0.015,
+    beatBuildRate: 0.08,
+    quickPulse: 0,
+    mediumWave: 0,
+    slowResonance: 0,
     isAnalyzing: false
   });
-  
   const beatDetectionRef = useRef<NodeJS.Timeout | null>(null);
   const sceneDataRef = useRef<any>(null);
-  
-  // State variables (enterprise minimal - 5 states only)
   const [parabolicOrbit, setParabolicOrbit] = useState(false);
   const [inputText, setInputText] = useState('');
   const [keyboardState, setKeyboardState] = useState<KeyboardState>('hidden');
   const [keyboardLanguage, setKeyboardLanguage] = useState<'english' | 'farsi'>('english');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
-  
-  
-  // Add a ref to track keyboard state for immediate access (avoiding state delays)
   const keyboardStateRef = useRef<KeyboardState>('hidden');
-  
-  // Enterprise button animation (minimal)
   const buttonScale = useRef(new Animated.Value(1)).current;
   const nextButtonScale = useRef(new Animated.Value(1)).current;
   const inputFocusAnim = useRef(new Animated.Value(0)).current;
   const keyboardAnim = useRef(new Animated.Value(0)).current;
-  const uiPositionAnim = useRef(new Animated.Value(0)).current; // For moving UI elements up
-  
-  // Helper function to force reset keyboard animations and state
+  const uiPositionAnim = useRef(new Animated.Value(0)).current;
+
   const forceResetKeyboard = () => {
-    // Stop all animations immediately
     keyboardAnim.stopAnimation();
     uiPositionAnim.stopAnimation();
     inputFocusAnim.stopAnimation();
-    
-    // Reset all animation values
     keyboardAnim.setValue(0);
     uiPositionAnim.setValue(0);
     inputFocusAnim.setValue(0);
-    
-    // Reset state
     updateKeyboardState('hidden');
   };
 
-  // Helper function to update keyboard state in both state and ref
   const updateKeyboardState = (newState: KeyboardState) => {
     keyboardStateRef.current = newState;
     setKeyboardState(newState);
   };
 
-  // IRANVERSE title animation
-  const titlePosition = useRef(new Animated.Value(0)).current; // 0 = normal, 1 = moved up
+  const titlePosition = useRef(new Animated.Value(0)).current;
 
-  // Initialize keyboard state on mount and cleanup
   useEffect(() => {
-    // Ensure clean initialization
     forceResetKeyboard();
-    
     return () => {
-      // Cleanup on unmount
       forceResetKeyboard();
     };
   }, []);
 
-  // Initialize expo-av audio system on component mount
   useEffect(() => {
     initializeAudioSystem();
-    
     return () => {
-      // Cleanup audio on unmount
       if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => {
-          // Silent cleanup - audio might already be unloaded
-        });
+        soundRef.current.unloadAsync().catch(() => {});
       }
     };
   }, []);
 
-  // Enterprise Android Back Button Handler
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (keyboardStateRef.current === 'shown' || keyboardStateRef.current === 'showing') {
         handleInputBlur();
-        return true; // Prevent default back action
+        return true;
       }
-      return false; // Allow default back action
+      return false;
     });
-    
     return () => backHandler.remove();
-  }, []); // Remove keyboardState dependency since we use ref
+  }, []);
 
-  // Auto-hide controls system (minimal)
   useEffect(() => {
     const startHideTimer = () => {
-      // Clear any existing timer
       if (autoHideTimerRef.current) {
         clearTimeout(autoHideTimerRef.current);
         autoHideTimerRef.current = null;
       }
-      
       const timer = setTimeout(() => {
         if (!parabolicOrbitRef.current?.isActive) {
           Animated.timing(controlsOpacity, {
@@ -266,12 +206,10 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           }).start();
         }
       }, CONFIG.ANIMATION.CONTROLS_HIDE_DELAY);
-      
       (autoHideTimerRef.current as any) = timer;
     };
 
     startHideTimer();
-    
     return () => {
       if (autoHideTimerRef.current) {
         clearTimeout(autoHideTimerRef.current);
@@ -280,92 +218,64 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     };
   }, [parabolicOrbit]);
 
-  // expo-av Audio System Implementation (React Native Compatible)
   const initializeAudioSystem = async (): Promise<void> => {
     try {
-      // Set audio mode for ambient background audio (using numeric constants for compatibility)
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
         staysActiveInBackground: true,
         allowsRecordingIOS: false,
-        interruptionModeIOS: 1, // DoNotMix
+        interruptionModeIOS: 1,
         shouldDuckAndroid: false,
-        interruptionModeAndroid: 1, // DoNotMix
+        interruptionModeAndroid: 1,
         playThroughEarpieceAndroid: false,
       });
-      
-      // Production: Audio system initialized successfully (no console.log)
-    } catch (error) {
-      // Production: Silent fallback - audio system initialization failed
-    }
+    } catch (error) {}
   };
 
   const startAmbientAudio = async (): Promise<void> => {
     try {
-      // Don't start if already playing
       if (isAudioPlayingRef.current || !isAudioLoadedRef.current) {
-        // Try to load audio if not loaded
         if (!isAudioLoadedRef.current) {
           await loadAudioFile();
         }
         if (!isAudioLoadedRef.current) {
-          // Production: Audio file not available, continuing without audio (silent)
           return;
         }
       }
 
       if (soundRef.current && isAudioLoadedRef.current) {
-        // Check current status
         const status = await soundRef.current.getStatusAsync();
         
         if (status.isLoaded) {
-          // Start playbook
           await soundRef.current.setIsLoopingAsync(true);
-          await soundRef.current.setVolumeAsync(CONFIG.AUDIO.VOLUME_LEVEL); // Use config constant
+          await soundRef.current.setVolumeAsync(CONFIG.AUDIO.VOLUME_LEVEL);
           await soundRef.current.playAsync();
           
           isAudioPlayingRef.current = true;
-          
-          // START BEAT DETECTION SYSTEM
           startBeatDetection();
-          
-          // Production: Ambient audio with beat detection started successfully (silent)
         }
       }
-    } catch (error) {
-      // Production: Silent fallback - failed to start ambient audio
-    }
+    } catch (error) {}
   };
 
   const stopAmbientAudio = async (): Promise<void> => {
     try {
       if (soundRef.current && isAudioPlayingRef.current) {
-        // STOP BEAT DETECTION
         stopBeatDetection();
-        
-        // Fade out effect by reducing volume first
         await soundRef.current.setVolumeAsync(CONFIG.AUDIO.FADE_OUT_VOLUME);
-        
-        // Small delay for fade effect
         setTimeout(async () => {
           try {
             if (soundRef.current) {
               await soundRef.current.stopAsync();
-              await soundRef.current.setPositionAsync(0); // Reset to beginning
+              await soundRef.current.setPositionAsync(0);
               isAudioPlayingRef.current = false;
-              // Production: Ambient audio stopped (silent)
             }
-          } catch (error) {
-            // Production: Silent fallback - audio stop cleanup failed
-          }
+          } catch (error) {}
         }, CONFIG.AUDIO.FADE_DELAY);
       }
-    } catch (error) {
-      // Production: Silent fallback - failed to stop ambient audio
-    }
+    } catch (error) {}
   };
 
-  // ENHANCED SMOOTH BEAT DETECTION SYSTEM
   const startBeatDetection = () => {
     if (beatDetectionRef.current) {
       clearInterval(beatDetectionRef.current);
@@ -373,67 +283,42 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     
     audioAnalysisRef.current.isAnalyzing = true;
     audioAnalysisRef.current.lastBeatTime = Date.now();
-    
-    // Smooth beat detection with organic response
     (beatDetectionRef.current as any) = setInterval(() => {
       const now = Date.now();
       const timeSinceLastBeat = now - audioAnalysisRef.current.lastBeatTime;
       const analysis = audioAnalysisRef.current;
-      
-      // Detect beat based on timing pattern
       if (timeSinceLastBeat >= analysis.beatInterval * 0.95) {
-        // BEAT DETECTED - Trigger smooth quantum fluctuation enhancement
         triggerSmoothBeatSync();
         analysis.lastBeatTime = now;
       }
-      
-      // SMOOTH INTERPOLATION SYSTEM - Update every frame for fluid motion
       updateSmoothBeatResponse();
-      
-    }, 16); // 60fps update rate for smooth interpolation
+    }, 16);
   };
 
   const triggerSmoothBeatSync = () => {
     const analysis = audioAnalysisRef.current;
     const now = Date.now();
-    
-    // Calculate beat intensity based on musical patterns
-    const beatPhase = (now / 1000) % 8; // 8-second musical phrase cycle
-    const intensity = 0.4 + Math.sin(beatPhase * Math.PI * 0.25) * 0.6; // 0.4 to 1.0 intensity
-    
-    // Set target strength for smooth interpolation
+    const beatPhase = (now / 1000) % 8;
+    const intensity = 0.4 + Math.sin(beatPhase * Math.PI * 0.25) * 0.6;
     analysis.targetBeatStrength = intensity;
-    
-    // MULTI-LAYER RESPONSE - Different decay rates for organic feel
-    analysis.quickPulse = intensity; // Immediate spike
-    analysis.mediumWave = Math.max(analysis.mediumWave, intensity * 0.8); // Sustained wave
-    analysis.slowResonance = Math.max(analysis.slowResonance, intensity * 0.4); // Background resonance
-    
+    analysis.quickPulse = intensity;
+    analysis.mediumWave = Math.max(analysis.mediumWave, intensity * 0.8);
+    analysis.slowResonance = Math.max(analysis.slowResonance, intensity * 0.4);
   };
 
   const updateSmoothBeatResponse = () => {
     const analysis = audioAnalysisRef.current;
-    const deltaTime = 16 / 1000; // ~16ms frame time
-    
-    // SMOOTH INTERPOLATION to target beat strength
+    const deltaTime = 16 / 1000;
     if (analysis.currentBeatStrength < analysis.targetBeatStrength) {
-      // Build up quickly on beat
-      analysis.currentBeatStrength += analysis.beatBuildRate * deltaTime * 60; // 60fps normalized
+      analysis.currentBeatStrength += analysis.beatBuildRate * deltaTime * 60;
     } else {
-      // Decay smoothly after beat
       analysis.currentBeatStrength -= analysis.beatDecayRate * deltaTime * 60;
     }
-    
-    // Clamp beat strength
     analysis.currentBeatStrength = Math.max(0, Math.min(1, analysis.currentBeatStrength));
-    
-    // MULTI-LAYER DECAY for organic feel
-    analysis.quickPulse *= Math.pow(0.3, deltaTime); // Fast decay (0.7s half-life)
-    analysis.mediumWave *= Math.pow(0.7, deltaTime); // Medium decay (2.3s half-life)
-    analysis.slowResonance *= Math.pow(0.9, deltaTime); // Slow decay (6.6s half-life)
-    
-    // Auto-reduce target after peak
-    analysis.targetBeatStrength *= Math.pow(0.1, deltaTime); // Quick target decay
+    analysis.quickPulse *= Math.pow(0.3, deltaTime);
+    analysis.mediumWave *= Math.pow(0.7, deltaTime);
+    analysis.slowResonance *= Math.pow(0.9, deltaTime);
+    analysis.targetBeatStrength *= Math.pow(0.1, deltaTime);
   };
 
   const stopBeatDetection = () => {
@@ -443,7 +328,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     }
     audioAnalysisRef.current.isAnalyzing = false;
     
-    // Smooth fadeout of all beat effects
     audioAnalysisRef.current.currentBeatStrength = 0;
     audioAnalysisRef.current.targetBeatStrength = 0;
     audioAnalysisRef.current.quickPulse = 0;
@@ -453,14 +337,11 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
 
   const loadAudioFile = async (): Promise<void> => {
     try {
-      // First unload any existing sound
       if (soundRef.current) {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
 
-      // Try to load the audio file - Production: This should be replaced with actual audio file
-      // For production deployment, ensure ambient-track.mp3 exists in assets/audio/
       const { sound } = await Audio.Sound.createAsync(
         require('../../assets/audio/ambient-track.mp3'),
         {
@@ -473,18 +354,13 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
 
       soundRef.current = sound;
       isAudioLoadedRef.current = true;
-      // Production: Audio file loaded successfully (silent)
     } catch (error) {
-      // Production: Silent fallback - audio file not found or failed to load
-      // App continues to function without audio - this is acceptable for production
       isAudioLoadedRef.current = false;
       soundRef.current = null;
     }
   };
 
-  // All function definitions (minimal)
   const showControlsTemporarily = (): void => {
-    // Clear any existing timer
     if (autoHideTimerRef.current) {
       clearTimeout(autoHideTimerRef.current);
       autoHideTimerRef.current = null;
@@ -509,16 +385,14 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     (autoHideTimerRef.current as any) = timer;
   };
 
-  // Enterprise-grade pinch distance calculation with safety
   const calculatePinchDistance = (touches: any[]): number => {
     if (!touches || touches.length < 2) return 0;
     
-    // FIX #2: Safe touch property validation
     const touch1 = touches[0];
     const touch2 = touches[1];
     
     if (!touch1?.pageX || !touch1?.pageY || !touch2?.pageX || !touch2?.pageY) {
-      return 0; // Safety exit for malformed touch events
+      return 0;
     }
     
     const dx = touch1.pageX - touch2.pageX;
@@ -526,7 +400,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  // FIX #4: Angle normalization utilities
   const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
     while (angle < -Math.PI) angle += 2 * Math.PI;
@@ -619,7 +492,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     }
   };
 
-  // FIX #2: Sync targets when switching control systems
   const syncCameraTargets = (): void => {
     targetAngleXRef.current = lookAngleXRef.current;
     targetAngleYRef.current = lookAngleYRef.current;
@@ -635,15 +507,11 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         };
         Vibration.vibrate(patterns[type]);
       }
-    } catch (error) {
-      // Silent fail - no console logs in production
-    }
+    } catch (error) {}
   };
 
-  // Enterprise button press animation (minimal)
   const animateButtonPress = (pressed: boolean) => {
     const scaleValue = pressed ? 0.92 : 1;
-    
     Animated.spring(buttonScale, {
       toValue: scaleValue,
       useNativeDriver: true,
@@ -725,7 +593,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     }).start();
   };
 
-  // Enterprise-grade parabolic orbit toggle (with expo-av audio)
   const toggleParabolicOrbit = async (): Promise<void> => {
     if (parabolicOrbitRef.current?.isActive) {
       // Stop parabolic orbit and audio
@@ -784,42 +651,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     showControlsTemporarily();
   };
 
-  // Enterprise input focus handlers - Simplified and Bulletproof
-  const handleInputFocus = (): void => {
-    // Set state immediately
-    keyboardStateRef.current = 'showing';
-    setKeyboardState('showing');
-    
-    // Input focus animation
-    Animated.timing(inputFocusAnim, {
-      toValue: 1,
-      duration: CONFIG.ANIMATION.INPUT_FOCUS_DURATION,
-      useNativeDriver: false,
-    }).start();
-    
-    // Start keyboard animations
-    Animated.parallel([
-      Animated.timing(keyboardAnim, {
-        toValue: 1,
-        duration: CONFIG.ANIMATION.TRANSITION_DURATION,
-        useNativeDriver: true,
-      }),
-      Animated.timing(uiPositionAnim, {
-        toValue: 1,
-        duration: CONFIG.ANIMATION.TRANSITION_DURATION,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      // Set to shown when complete
-      keyboardStateRef.current = 'shown';
-      setKeyboardState('shown');
-    });
-    
-    showControlsTemporarily();
-  };
 
   const handleInputBlur = (): void => {
-    // Set state immediately
     keyboardStateRef.current = 'hiding';
     setKeyboardState('hiding');
     
@@ -829,7 +662,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       useNativeDriver: false,
     }).start();
     
-    // Hide keyboard animations
     Animated.parallel([
       Animated.timing(keyboardAnim, {
         toValue: 0,
@@ -842,57 +674,46 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         useNativeDriver: true,
       })
     ]).start(() => {
-      // Set to hidden when complete
       keyboardStateRef.current = 'hidden';
       setKeyboardState('hidden');
     });
   };
 
   const handleInputChange = (text: string): void => {
-    // Enterprise input validation and sanitization
     const sanitizedText = text
-      .replace(CONFIG.SECURITY.XSS_FILTER_REGEX, '') // Basic XSS prevention
-      .substring(0, CONFIG.SECURITY.MAX_INPUT_LENGTH); // Length limit for enterprise security
+      .replace(CONFIG.SECURITY.XSS_FILTER_REGEX, '')
+      .substring(0, CONFIG.SECURITY.MAX_INPUT_LENGTH);
     
     setInputText(sanitizedText);
     
-    // Check if password is valid (English: FFZ, Farsi: فرج فاطمه زهرا)
     const validPasswords = ['FFZ', 'فرج فاطمه زهرا'];
     setIsPasswordValid(validPasswords.includes(sanitizedText.trim()));
     
     showControlsTemporarily();
   };
 
-  // Enterprise Keyboard Handlers - Production Grade
   const handleKeyPress = (key: string): void => {
     if (key === 'BACKSPACE') {
       const newText = inputText.slice(0, -1);
       setInputText(newText);
-      // Check password validity on backspace
       const validPasswords = ['FFZ', 'فرج فاطمه زهرا'];
       setIsPasswordValid(validPasswords.includes(newText.trim()));
     } else if (key === 'SPACE') {
       const newText = inputText + ' ';
       setInputText(newText);
-      // Check password validity on space
       const validPasswords = ['FFZ', 'فرج فاطمه زهرا'];
       setIsPasswordValid(validPasswords.includes(newText.trim()));
     } else if (key === 'ENTER') {
       handleInputBlur();
-      // Process input here - add your enterprise logic
     } else if (key === '123') {
-      // Numbers mode - implement number keyboard if needed
       return;
     } else if (key === 'فا/EN') {
-      // Toggle between Farsi and English keyboards
       setKeyboardLanguage(prev => prev === 'english' ? 'farsi' : 'english');
       return;
     } else {
-      // Validate and add character with enterprise length limit
       if (inputText.length < CONFIG.SECURITY.MAX_INPUT_LENGTH) {
         const newText = inputText + key;
         setInputText(newText);
-        // Check password validity on new character
         const validPasswords = ['FFZ', 'فرج فاطمه زهرا'];
         setIsPasswordValid(validPasswords.includes(newText.trim()));
       }
@@ -900,19 +721,15 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     showControlsTemporarily();
   };
 
-  // Simplified input activation to prevent crash
   const activateInput = (): void => {
     try {
-      // Prevent multiple rapid activations
       if (keyboardStateRef.current === 'showing' || keyboardStateRef.current === 'shown') {
         return;
       }
       
-      // Simple state change without complex animations
       keyboardStateRef.current = 'showing';
       setKeyboardState('showing');
       
-      // Simple animation
       Animated.timing(keyboardAnim, {
         toValue: 1,
         duration: 300,
@@ -922,14 +739,12 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         setKeyboardState('shown');
       });
       
-      // UI position animation
       Animated.timing(uiPositionAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: false,
       }).start();
       
-      // Input focus animation
       Animated.timing(inputFocusAnim, {
         toValue: 1,
         duration: 200,
@@ -937,32 +752,23 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       }).start();
       
       showControlsTemporarily();
-    } catch (error) {
-      // Error handled silently in production
-    }
+    } catch (error) {}
   };
 
   const renderEnterpriseKeyboard = () => {
-    // Use state for rendering (React needs the state for re-renders)
     if (keyboardState === 'hidden') return null;
 
-    // English keyboard layout
-    const englishKeyRows = [
+    const keyRows = keyboardLanguage === 'english' ? [
       ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
       ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
       ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
       ['123', 'SPACE', 'BACKSPACE', 'فا/EN', 'ENTER']
-    ];
-
-    // Farsi keyboard layout (Complete Persian QWERTY)
-    const farsiKeyRows = [
+    ] : [
       ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج'],
       ['ش', 'س', 'ی', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ک'],
       ['ظ', 'ط', 'ز', 'ر', 'ذ', 'د', 'پ', 'و', 'گ'],
       ['؟', '،', 'SPACE', 'BACKSPACE', 'فا/EN', 'ENTER']
     ];
-
-    const keyRows = keyboardLanguage === 'english' ? englishKeyRows : farsiKeyRows;
 
     return (
       <Animated.View style={[
@@ -1646,51 +1452,32 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     
     // Create particle system
     const logoParticleSystem = new THREE.Points(logoParticleGeometry, logoParticleMaterial);
-    logoParticleSystem.position.set(0, 0, 0); // Center of sphere
-    // Commented out - using 2D logo instead
-    // scene.add(logoParticleSystem);
-    
-    // Animation state
+    logoParticleSystem.position.set(0, 0, 0);
     const logoAnimationState = {
       convergence: 0,
       targetConvergence: 0,
       animationSpeed: 0.02
     };
     
-    // Store references
     const logoRef = { 
       particleSystem: logoParticleSystem,
       material: logoParticleMaterial,
       animationState: logoAnimationState
     };
     
-    // Store in component ref for access in pan handlers
     logoAnimationRef.current = logoRef;
     
-    // Particle logo system created successfully
-    
-    // Trigger logo formation after delay
     setTimeout(() => {
       if (logoRef.animationState) {
-        logoRef.animationState.targetConvergence = 1; // Form the logo
-        // Triggering particle logo convergence
+        logoRef.animationState.targetConvergence = 1;
       }
-    }, 2000); // 2 second delay
+    }, 2000);
     
-    // ========================================================================================
-    // 2D LOGO SYSTEM - Simple and Delicate
-    // ========================================================================================
-    
-    // Create a plane for the 2D logo
     const logoPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
-    
-    // Load the actual logo texture
     const textureLoader = new THREE.TextureLoader();
     const logoTexture = textureLoader.load(
       Asset.fromModule(require('../../assets/logo/iranverse-logo-black.png')).uri
     );
-    
-    // Create material with the logo texture
     const logo2DMaterial = new THREE.MeshBasicMaterial({
       map: logoTexture,
       transparent: true,
@@ -1702,10 +1489,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     });
     
     const logo2DMesh = new THREE.Mesh(logoPlaneGeometry, logo2DMaterial);
-    logo2DMesh.position.set(0, 0, 0); // Center of sphere
+    logo2DMesh.position.set(0, 0, 0);
     scene.add(logo2DMesh);
-    
-    // Logo animation state
     const logo2DState = {
       opacity: 0,
       targetOpacity: 0,
@@ -1713,22 +1498,17 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       phaseStartTime: 0
     };
     
-    // Start logo fade in after 3 seconds
     setTimeout(() => {
       logo2DState.animationPhase = 'fadingIn';
       logo2DState.targetOpacity = 1;
       logo2DState.phaseStartTime = Date.now();
     }, 3000);
-    
-    
-    // Store references for animation
     const logo2DRef = {
       mesh: logo2DMesh,
       material: logo2DMaterial,
       state: logo2DState
     };
     
-    // Store all scene references in a single object
     const sceneData = {
       scene,
       camera,
@@ -1741,114 +1521,79 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       logo2DRef
     };
     
-    // Store in ref for access from other functions
     sceneDataRef.current = sceneData;
 
-    // Load audio file after scene setup
     await loadAudioFile();
 
     const animate = (): void => {
       const elapsed = clock.getElapsedTime();
       
 
-      // Update Mars shader time and lighting
       if (marsMaterial.uniforms.uTime) {
         marsMaterial.uniforms.uTime.value = elapsed;
       }
       if (marsMaterial.uniforms.uSunPosition) {
-        // Fixed sun position for consistent lighting
         marsMaterial.uniforms.uSunPosition.value.set(5, 10, 7.5);
       }
 
-      // Mars rotation around itself only (realistic Mars day = 24.6 hours)
-      mars.rotation.y = elapsed * 0.05; // Slow realistic rotation
+      mars.rotation.y = elapsed * 0.05;
 
-      // Enhanced Camera Transition System with Cinematic Easing
-      if (cameraTransitionRef.current?.isTransitioning) {
+          if (cameraTransitionRef.current?.isTransitioning) {
         const now = Date.now();
         const elapsedTime = now - cameraTransitionRef.current.startTime;
         const progress = Math.min(elapsedTime / cameraTransitionRef.current.duration, 1.0);
         
-        // Apply cinematic easing curve
         const easedProgress = cameraTransitionRef.current.easeFunction(progress);
-        
-        // Smooth interpolation with velocity control
         const radiusDelta = cameraTransitionRef.current.targetRadius - cameraTransitionRef.current.startRadius;
         const angleXDelta = cameraTransitionRef.current.targetAngleX - cameraTransitionRef.current.startAngleX;
         const angleYDelta = cameraTransitionRef.current.targetAngleY - cameraTransitionRef.current.startAngleY;
         
-        // Handle angle wraparound for smooth rotation
         let adjustedAngleXDelta = angleXDelta;
         if (Math.abs(angleXDelta) > Math.PI) {
           adjustedAngleXDelta = angleXDelta > 0 
             ? angleXDelta - 2 * Math.PI 
             : angleXDelta + 2 * Math.PI;
         }
-        
-        // Apply interpolated values
         cameraRadiusRef.current = cameraTransitionRef.current.startRadius + radiusDelta * easedProgress;
         lookAngleXRef.current = cameraTransitionRef.current.startAngleX + adjustedAngleXDelta * easedProgress;
         lookAngleYRef.current = cameraTransitionRef.current.startAngleY + angleYDelta * easedProgress;
         
-        // Complete transition
         if (progress >= 1.0) {
           cameraTransitionRef.current = null;
-          
-          // FIX #2: Sync targets when transition completes
           syncCameraTargets();
         }
       }
       
-      // Handle parabolic orbit motion (only if not transitioning)
       if (parabolicOrbitRef.current?.isActive && !cameraTransitionRef.current?.isTransitioning) {
         const now = Date.now();
         const elapsed = now - parabolicOrbitRef.current.startTime;
         const progress = elapsed / parabolicOrbitRef.current.duration;
         
-        // End orbit after one complete loop
         if (progress >= 1.0) {
           parabolicOrbitRef.current = null;
           setParabolicOrbit(false);
-          // Stop audio when orbit completes
           stopAmbientAudio();
-          
-          // FIX #2: Sync targets when orbit ends naturally to prevent camera jumps
           syncCameraTargets();
         } else {
-          // CUSTOM HAND-DRAWN PATH - 2 minutes continuous with ULTRA-SMOOTH transitions
-          // Camera ALWAYS looks at center (0,0,0) - only position changes
           const segmentCount = 9;
-          
-          // Use smooth continuous progress for seamless transitions
-          const cycleProgress = progress; // 0 to 1 over 2 minutes
-          const continuousSegmentProgress = cycleProgress * segmentCount; // 0 to 9
+          const continuousSegmentProgress = progress * segmentCount;
           const currentSegmentIndex = Math.floor(continuousSegmentProgress) % segmentCount;
-          const segmentProgress = continuousSegmentProgress % 1; // 0-1 within current segment
+          const segmentProgress = continuousSegmentProgress % 1;
           
-          // Smooth transition factor - creates seamless blending between segments
-          const transitionZone = 0.1; // 10% of each segment for transition
-          let blendFactor = 1.0;
-          if (segmentProgress < transitionZone) {
-            blendFactor = segmentProgress / transitionZone; // Blend in
-          } else if (segmentProgress > (1 - transitionZone)) {
-            blendFactor = (1 - segmentProgress) / transitionZone; // Blend out
-          }
+          const transitionZone = 0.1;
           
           let targetX: number, targetZ: number, targetRadius: number;
-          let nextTargetX: number, nextTargetZ: number, nextTargetRadius: number;
           
           // Current segment calculation
           const calculateSegmentPosition = (segIndex: number, segProg: number) => {
             const normalizedSegIndex = segIndex % segmentCount;
             
             if (normalizedSegIndex === 0) {
-              // GREEN #1: Circle segment (left side arc) - Starting from camera (5, 0)
               const centerX = 1.5;
               const centerZ = 2;
               const radius = 4;
-              const startAngle = -0.3; // Start closer to camera position
-              const endAngle = Math.PI * 0.7; // Smooth arc
-              
+              const startAngle = -0.3;
+              const endAngle = Math.PI * 0.7;
               const angle = startAngle + (endAngle - startAngle) * segProg;
               return {
                 x: centerX + radius * Math.cos(angle),
@@ -1997,9 +1742,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
             targetRadius = currentPos.r;
           }
           
-          // Convert 2D path coordinates to 3D camera angles
-          // Camera ALWAYS looks at center (0,0,0)
-          const distanceFromCenter = Math.sqrt(targetX * targetX + targetZ * targetZ);
           const horizontalAngle = Math.atan2(targetX, targetZ);
           
           // Add subtle vertical motion for dynamic camera work
@@ -2039,17 +1781,12 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         const z = positionAttr.getZ(i);
         const y0 = baseY[i * 3 + 1];
         
-        // Calculate distance from wave center (beneath main sphere)
-        const distanceFromCenter = Math.sqrt(
-          (x - waveCenter.x) * (x - waveCenter.x) + 
-          (z - waveCenter.z) * (z - waveCenter.z)
-        );
+        const dx = x - waveCenter.x;
+        const dz = z - waveCenter.z;
+        const distanceFromCenter = Math.sqrt(dx * dx + dz * dz);
         
-        // Create 2D SIN wave propagating outward
         const wavePhase = elapsed * waveSpeed - distanceFromCenter * waveFrequency;
         const waveHeight = Math.sin(wavePhase) * waveAmplitude;
-        
-        // Apply exponential fade with distance for natural look
         const fadeDistance = Math.exp(-distanceFromCenter * 0.2);
         const finalWaveHeight = waveHeight * fadeDistance;
         
@@ -2058,62 +1795,49 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         positionAttr.needsUpdate = true;
       }
 
-      // Quantum Field Animation with Smooth Beat Sync
       const quantumTime = elapsed * 0.5;
       
-      // Get smooth beat analysis data
       const analysis = audioAnalysisRef.current;
       const isAnalyzing = analysis.isAnalyzing;
       
-      // Smooth beat influence - combines all response layers
       const smoothBeatStrength = analysis.currentBeatStrength;
-      const quickResponse = analysis.quickPulse; // Immediate visual impact
-      const mediumResponse = analysis.mediumWave; // Sustained effects
-      const slowResponse = analysis.slowResonance; // Background ambience
+      const quickResponse = analysis.quickPulse;
+      const mediumResponse = analysis.mediumWave;
+      const slowResponse = analysis.slowResonance;
       
-      // Composite beat multiplier - organic combination of all layers
       const beatMultiplier = 1 + (
-        quickResponse * 1.5 + // Quick spike for immediate response
-        mediumResponse * 0.8 + // Medium wave for sustained effect
-        slowResponse * 0.3 // Slow background influence
+        quickResponse * 1.5 +
+        mediumResponse * 0.8 +
+        slowResponse * 0.3
       );
 
-      // Update quantum material uniforms with smooth beat sync
       if (quantumMaterial.uniforms.time) {
         quantumMaterial.uniforms.time.value = quantumTime;
       }
       if (quantumMaterial.uniforms.vacuumFluctuation) {
         const baseFluctuation = vacuumEnergyDensity * (1.0 + Math.sin(elapsed * 0.8) * 0.3);
-        // SMOOTH BEAT SYNC: Gradual enhancement based on composite beat strength
         quantumMaterial.uniforms.vacuumFluctuation.value = baseFluctuation * beatMultiplier;
       }
 
-      // Optimize: Update particles less frequently
-      const updateParticles = elapsed % 0.016 < 0.008; // Update every other frame
+      const updateParticles = elapsed % 0.016 < 0.008;
       
       if (updateParticles) {
         for (let i = 0; i < quantumParticleCount; i++) {
           const particle = quantumParticles[i];
         
-        // SMOOTH Beat-Synced Quantum State Transitions
         const uncertaintyFactor = Math.sin(elapsed * 2.0 + particle.phase) * uncertaintyPrinciple;
         let stateTransitionProbability = 0.002 + Math.abs(uncertaintyFactor) * 0.005;
         
-        // SMOOTH BEAT SYNC: Gradual increase based on composite beat strength
         if (isAnalyzing && smoothBeatStrength > 0.1) {
-          stateTransitionProbability *= (1 + smoothBeatStrength * 2); // Smooth scaling instead of abrupt
+          stateTransitionProbability *= (1 + smoothBeatStrength * 2);
         }
         
         if (Math.random() < stateTransitionProbability) {
-          // Quantum state flip (virtual ↔ real)
           particle.quantumState = 1 - particle.quantumState;
           particle.lastInteraction = elapsed;
           
-          // SMOOTH BEAT SYNC: Gradual energy enhancement
-          const energyBoost = isAnalyzing ? smoothBeatStrength * 0.4 : 0; // Reduced and smoothed
+          const energyBoost = isAnalyzing ? smoothBeatStrength * 0.4 : 0;
           particle.energyLevel = Math.random() * 0.5 + 0.5 + energyBoost;
-          
-          // Update color based on new energy level (gray spectrum only)
           const brightness = Math.min(1.0, particle.energyLevel);
           const grayColor = new THREE.Color(brightness * 0.8, brightness * 0.8, brightness * 0.8);
           quantumColors[i * 3] = grayColor.r;
@@ -2121,30 +1845,23 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           quantumColors[i * 3 + 2] = grayColor.b;
         }
         
-        // Smooth Vacuum Fluctuations with beat sync
-        const timeSinceInteraction = elapsed - particle.lastInteraction;
         let vacuumFluctuation = Math.sin(elapsed * 1.5 + particle.phase * 3) * 0.4 + 0.6;
         
-        // SMOOTH BEAT SYNC: Gradual enhancement using medium wave
         if (isAnalyzing) {
-          vacuumFluctuation *= (1 + mediumResponse * 0.6); // Smooth, sustained effect
+          vacuumFluctuation *= (1 + mediumResponse * 0.6);
         }
-        
-        // Update existence probability with quantum coherence effects
         const coherenceEffect = Math.sin(elapsed * quantumCoherence + particle.phase) * 0.2;
         particle.existenceProbability = Math.max(0.1, 
           Math.min(1.0, particle.existenceProbability + coherenceEffect * 0.01));
         
-        // Smooth Quantum Entanglement Effects
         if (particle.entanglementPartner !== null && particle.entanglementPartner < quantumParticleCount) {
           const partner = quantumParticles[particle.entanglementPartner];
           
           if (Math.abs(particle.quantumState - partner.quantumState) > 0.5) {
             let entanglementStrength = 0.02;
             
-            // SMOOTH BEAT SYNC: Gradual entanglement enhancement
             if (isAnalyzing) {
-              entanglementStrength *= (1 + quickResponse * 1.2); // Use quick response for immediate effect
+              entanglementStrength *= (1 + quickResponse * 1.2);
             }
             
             const distance = particle.currentPosition.distanceTo(partner.currentPosition);
@@ -2157,10 +1874,9 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           }
         }
         
-        // Smooth Quantum Tunneling Effect
         let tunnelingProbability = 0.0008;
         if (isAnalyzing && quickResponse > 0.2) {
-          tunnelingProbability *= (1 + quickResponse * 2); // Smooth scaling based on quick response
+          tunnelingProbability *= (1 + quickResponse * 2);
         }
         
         if (Math.random() < tunnelingProbability) {
@@ -2175,10 +1891,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           particle.currentPosition.add(tunnelDirection.multiplyScalar(tunnelDistance));
         }
         
-        // Smooth Quantum Harmonic Oscillator Motion
         let oscillationFrequency = 0.1 + particle.energyLevel * 0.3;
         if (isAnalyzing) {
-          // Use medium wave for sustained oscillation changes
           oscillationFrequency *= (1 + mediumResponse * 0.4);
         }
         
@@ -2188,10 +1902,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           Math.sin(elapsed * oscillationFrequency * 1.2 + particle.phase * 0.8) * 0.1
         );
         
-        // Smooth Zero-Point Energy Fluctuations
         let zeroPointIntensity = vacuumEnergyDensity * 0.02;
         if (isAnalyzing) {
-          // Use slow resonance for background energy enhancement
           zeroPointIntensity *= (1 + slowResponse * 1.5);
         }
         
@@ -2201,16 +1913,12 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           (Math.random() - 0.5) * zeroPointIntensity
         );
         
-        // Update particle velocity with quantum effects
         particle.velocity.add(zeroPointMotion);
         particle.velocity.multiplyScalar(0.98);
         
-        // Update position with quantum oscillation and motion
         particle.currentPosition.copy(particle.basePosition)
           .add(quantumOscillation.multiplyScalar(0.5))
           .add(particle.velocity.clone().multiplyScalar(0.5));
-        
-        // Quantum Confinement
         const distanceFromCenter = particle.currentPosition.length();
         const maxRadius = fieldRadius * 0.9;
         if (distanceFromCenter > maxRadius) {
@@ -2218,19 +1926,16 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           particle.velocity.multiplyScalar(-0.3);
         }
         
-        // Update visual properties with smooth beat sync
         quantumPositions[i * 3] = particle.currentPosition.x;
         quantumPositions[i * 3 + 1] = particle.currentPosition.y;
         quantumPositions[i * 3 + 2] = particle.currentPosition.z;
         
-        // SMOOTH BEAT SYNC: Gradual visual enhancements
         let stateOpacity = particle.quantumState * 0.8 + 0.4;
         let sizeMultiplier = 1.0;
         
         if (isAnalyzing) {
-          // Smooth brightness and size changes using composite response
-          stateOpacity *= (1 + smoothBeatStrength * 0.4); // Gentle brightness increase
-          sizeMultiplier *= (1 + quickResponse * 0.3); // Quick size response for visual impact
+          stateOpacity *= (1 + smoothBeatStrength * 0.4);
+          sizeMultiplier *= (1 + quickResponse * 0.3);
         }
         
         quantumOpacities[i] = particle.existenceProbability * stateOpacity * vacuumFluctuation * 1.8;
@@ -2711,7 +2416,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
               selectionColor="rgba(255, 255, 255, 0.8)"
               autoCapitalize="none"
               autoCorrect={false}
-              blurOnSubmit={false}
+              returnKeyType="done"
               showSoftInputOnFocus={false} // Disable native keyboard
               caretHidden={keyboardState === 'hidden'} // Cursor state synchronization
               editable={false} // Prevent native focus - use TouchableOpacity only
@@ -3101,11 +2806,3 @@ const styles = StyleSheet.create({
 });
 
 export default FirstScreen;
-
-
-
-
-
-
-
-
