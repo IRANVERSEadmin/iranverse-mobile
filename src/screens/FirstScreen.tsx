@@ -1777,20 +1777,20 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       const updateWaves = elapsed % 0.033 < 0.016; // Update ~30fps instead of 60fps
       if (updateWaves) {
         for (let i = 0; i < positionAttr.count; i++) {
-        const x = positionAttr.getX(i);
-        const z = positionAttr.getZ(i);
-        const y0 = baseY[i * 3 + 1];
-        
-        const dx = x - waveCenter.x;
-        const dz = z - waveCenter.z;
-        const distanceFromCenter = Math.sqrt(dx * dx + dz * dz);
-        
-        const wavePhase = elapsed * waveSpeed - distanceFromCenter * waveFrequency;
-        const waveHeight = Math.sin(wavePhase) * waveAmplitude;
-        const fadeDistance = Math.exp(-distanceFromCenter * 0.2);
-        const finalWaveHeight = waveHeight * fadeDistance;
-        
-        positionAttr.setY(i, y0 + finalWaveHeight);
+          const x = positionAttr.getX(i);
+          const z = positionAttr.getZ(i);
+          const y0 = baseY[i * 3 + 1];
+          
+          const dx = x - waveCenter.x;
+          const dz = z - waveCenter.z;
+          const distanceFromCenter = Math.sqrt(dx * dx + dz * dz);
+          
+          const wavePhase = elapsed * waveSpeed - distanceFromCenter * waveFrequency;
+          const waveHeight = Math.sin(wavePhase) * waveAmplitude;
+          const fadeDistance = Math.exp(-distanceFromCenter * 0.2);
+          const finalWaveHeight = waveHeight * fadeDistance;
+          
+          positionAttr.setY(i, y0 + finalWaveHeight);
         }
         positionAttr.needsUpdate = true;
       }
@@ -1824,15 +1824,15 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       if (updateParticles) {
         for (let i = 0; i < quantumParticleCount; i++) {
           const particle = quantumParticles[i];
-        
-        const uncertaintyFactor = Math.sin(elapsed * 2.0 + particle.phase) * uncertaintyPrinciple;
-        let stateTransitionProbability = 0.002 + Math.abs(uncertaintyFactor) * 0.005;
-        
-        if (isAnalyzing && smoothBeatStrength > 0.1) {
-          stateTransitionProbability *= (1 + smoothBeatStrength * 2);
-        }
-        
-        if (Math.random() < stateTransitionProbability) {
+          
+          const uncertaintyFactor = Math.sin(elapsed * 2.0 + particle.phase) * uncertaintyPrinciple;
+          let stateTransitionProbability = 0.002 + Math.abs(uncertaintyFactor) * 0.005;
+          
+          if (isAnalyzing && smoothBeatStrength > 0.1) {
+            stateTransitionProbability *= (1 + smoothBeatStrength * 2);
+          }
+          
+          if (Math.random() < stateTransitionProbability) {
           particle.quantumState = 1 - particle.quantumState;
           particle.lastInteraction = elapsed;
           
@@ -1842,19 +1842,19 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
           const grayColor = new THREE.Color(brightness * 0.8, brightness * 0.8, brightness * 0.8);
           quantumColors[i * 3] = grayColor.r;
           quantumColors[i * 3 + 1] = grayColor.g;
-          quantumColors[i * 3 + 2] = grayColor.b;
-        }
-        
-        let vacuumFluctuation = Math.sin(elapsed * 1.5 + particle.phase * 3) * 0.4 + 0.6;
-        
-        if (isAnalyzing) {
-          vacuumFluctuation *= (1 + mediumResponse * 0.6);
-        }
-        const coherenceEffect = Math.sin(elapsed * quantumCoherence + particle.phase) * 0.2;
-        particle.existenceProbability = Math.max(0.1, 
-          Math.min(1.0, particle.existenceProbability + coherenceEffect * 0.01));
-        
-        if (particle.entanglementPartner !== null && particle.entanglementPartner < quantumParticleCount) {
+            quantumColors[i * 3 + 2] = grayColor.b;
+          }
+          
+          let vacuumFluctuation = Math.sin(elapsed * 1.5 + particle.phase * 3) * 0.4 + 0.6;
+          
+          if (isAnalyzing) {
+            vacuumFluctuation *= (1 + mediumResponse * 0.6);
+          }
+          const coherenceEffect = Math.sin(elapsed * quantumCoherence + particle.phase) * 0.2;
+          particle.existenceProbability = Math.max(0.1, 
+            Math.min(1.0, particle.existenceProbability + coherenceEffect * 0.01));
+          
+          if (particle.entanglementPartner !== null && particle.entanglementPartner < quantumParticleCount) {
           const partner = quantumParticles[particle.entanglementPartner];
           
           if (Math.abs(particle.quantumState - partner.quantumState) > 0.5) {
@@ -1869,17 +1869,17 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
             
             if (Math.random() < influence) {
               partner.quantumState = particle.quantumState;
-              partner.spinDirection = -particle.spinDirection;
+                partner.spinDirection = -particle.spinDirection;
+              }
             }
           }
-        }
-        
-        let tunnelingProbability = 0.0008;
-        if (isAnalyzing && quickResponse > 0.2) {
-          tunnelingProbability *= (1 + quickResponse * 2);
-        }
-        
-        if (Math.random() < tunnelingProbability) {
+          
+          let tunnelingProbability = 0.0008;
+          if (isAnalyzing && quickResponse > 0.2) {
+            tunnelingProbability *= (1 + quickResponse * 2);
+          }
+          
+          if (Math.random() < tunnelingProbability) {
           const tunnelingIntensity = isAnalyzing ? (1 + quickResponse * 0.5) : 1;
           const tunnelDistance = (0.5 + Math.random() * 1.0) * tunnelingIntensity;
           const tunnelDirection = new THREE.Vector3(
@@ -1888,61 +1888,60 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
             Math.random() - 0.5
           ).normalize();
           
-          particle.currentPosition.add(tunnelDirection.multiplyScalar(tunnelDistance));
-        }
-        
-        let oscillationFrequency = 0.1 + particle.energyLevel * 0.3;
-        if (isAnalyzing) {
-          oscillationFrequency *= (1 + mediumResponse * 0.4);
-        }
-        
-        const quantumOscillation = new THREE.Vector3(
+            particle.currentPosition.add(tunnelDirection.multiplyScalar(tunnelDistance));
+          }
+          
+          let oscillationFrequency = 0.1 + particle.energyLevel * 0.3;
+          if (isAnalyzing) {
+            oscillationFrequency *= (1 + mediumResponse * 0.4);
+          }
+          
+          const quantumOscillation = new THREE.Vector3(
           Math.sin(elapsed * oscillationFrequency + particle.phase) * 0.1,
           Math.sin(elapsed * oscillationFrequency * 0.8 + particle.phase * 1.2) * 0.1,
           Math.sin(elapsed * oscillationFrequency * 1.2 + particle.phase * 0.8) * 0.1
-        );
-        
-        let zeroPointIntensity = vacuumEnergyDensity * 0.02;
-        if (isAnalyzing) {
-          zeroPointIntensity *= (1 + slowResponse * 1.5);
-        }
-        
-        const zeroPointMotion = new THREE.Vector3(
+          );
+          
+          let zeroPointIntensity = vacuumEnergyDensity * 0.02;
+          if (isAnalyzing) {
+            zeroPointIntensity *= (1 + slowResponse * 1.5);
+          }
+          
+          const zeroPointMotion = new THREE.Vector3(
           (Math.random() - 0.5) * zeroPointIntensity,
           (Math.random() - 0.5) * zeroPointIntensity,
           (Math.random() - 0.5) * zeroPointIntensity
-        );
-        
-        particle.velocity.add(zeroPointMotion);
-        particle.velocity.multiplyScalar(0.98);
-        
-        particle.currentPosition.copy(particle.basePosition)
+          );
+          
+          particle.velocity.add(zeroPointMotion);
+          particle.velocity.multiplyScalar(0.98);
+          
+          particle.currentPosition.copy(particle.basePosition)
           .add(quantumOscillation.multiplyScalar(0.5))
-          .add(particle.velocity.clone().multiplyScalar(0.5));
-        const distanceFromCenter = particle.currentPosition.length();
-        const maxRadius = fieldRadius * 0.9;
-        if (distanceFromCenter > maxRadius) {
-          particle.currentPosition.normalize().multiplyScalar(maxRadius);
-          particle.velocity.multiplyScalar(-0.3);
-        }
-        
-        quantumPositions[i * 3] = particle.currentPosition.x;
+            .add(particle.velocity.clone().multiplyScalar(0.5));
+          const distanceFromCenter = particle.currentPosition.length();
+          const maxRadius = fieldRadius * 0.9;
+          if (distanceFromCenter > maxRadius) {
+            particle.currentPosition.normalize().multiplyScalar(maxRadius);
+            particle.velocity.multiplyScalar(-0.3);
+          }
+          
+          quantumPositions[i * 3] = particle.currentPosition.x;
         quantumPositions[i * 3 + 1] = particle.currentPosition.y;
-        quantumPositions[i * 3 + 2] = particle.currentPosition.z;
-        
-        let stateOpacity = particle.quantumState * 0.8 + 0.4;
-        let sizeMultiplier = 1.0;
-        
-        if (isAnalyzing) {
-          stateOpacity *= (1 + smoothBeatStrength * 0.4);
-          sizeMultiplier *= (1 + quickResponse * 0.3);
-        }
-        
-        quantumOpacities[i] = particle.existenceProbability * stateOpacity * vacuumFluctuation * 1.8;
-        
-        // Smooth size fluctuation with beat sync
-        const sizeFluctuation = 1.0 + uncertaintyFactor * 0.5;
-        quantumSizes[i] = (0.04 + particle.energyLevel * 0.06) * sizeFluctuation * sizeMultiplier;
+          quantumPositions[i * 3 + 2] = particle.currentPosition.z;
+          
+          let stateOpacity = particle.quantumState * 0.8 + 0.4;
+          let sizeMultiplier = 1.0;
+          
+          if (isAnalyzing) {
+            stateOpacity *= (1 + smoothBeatStrength * 0.4);
+            sizeMultiplier *= (1 + quickResponse * 0.3);
+          }
+          
+          quantumOpacities[i] = particle.existenceProbability * stateOpacity * vacuumFluctuation * 1.8;
+          
+          const sizeFluctuation = 1.0 + uncertaintyFactor * 0.5;
+          quantumSizes[i] = (0.04 + particle.energyLevel * 0.06) * sizeFluctuation * sizeMultiplier;
         }
 
         // Update geometry attributes only when particles are updated
