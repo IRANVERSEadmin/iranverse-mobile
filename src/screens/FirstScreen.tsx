@@ -669,12 +669,48 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     if (isPasswordValid) {
       triggerHapticFeedback('medium');
       
-      // Navigate to sign up screen
-      // Navigate to SignUp screen
-navigation.navigate('AuthWelcome')
+      // Move camera to final position
+      startCameraTransition(
+        11.03,  // Final X position
+        -0.75,  // Final Y position  
+        0,      // Final Z position
+        11.5,   // Final zoom/radius
+        2000    // 2 second transition
+      );
     } else {
       triggerHapticFeedback('light');
       // Invalid password - could add visual feedback here
+    }
+  };
+
+  // Start camera transition to specific position
+  const startCameraTransition = (x: number, y: number, z: number, radius: number, duration: number = 2000): void => {
+    // Calculate angles from position
+    const targetAngleX = Math.atan2(x, z);
+    const distance = Math.sqrt(x * x + z * z);
+    const targetAngleY = Math.atan2(y, distance);
+    
+    // Stop any existing transitions or orbits
+    parabolicOrbitRef.current = null;
+    setParabolicOrbit(false);
+    
+    // Set up the camera transition
+    cameraTransitionRef.current = {
+      isTransitioning: true,
+      startTime: Date.now(),
+      duration: duration,
+      startRadius: cameraRadiusRef.current,
+      startAngleX: lookAngleXRef.current,
+      startAngleY: lookAngleYRef.current,
+      targetRadius: radius,
+      targetAngleX: targetAngleX,
+      targetAngleY: targetAngleY,
+      easeFunction: easeInOutCubic
+    };
+    
+    // Hide keyboard if shown
+    if (keyboardStateRef.current !== 'hidden') {
+      handleInputBlur();
     }
   };
 
