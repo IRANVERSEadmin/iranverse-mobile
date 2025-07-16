@@ -23,7 +23,7 @@ import { Renderer } from 'expo-three';
 import { Audio } from 'expo-av';
 import { Asset } from 'expo-asset';
 import GradientBackground from '../shared/components/layout/GradientBackground';
-import AnimatedIranverseLogo from '../shared/components/ui/AnimatedIranverseLogo';
+import IranverseLogo from '../shared/components/ui/IranverseLogo';
 
 type KeyboardState = 'hidden' | 'showing' | 'shown' | 'hiding';
 type FirstScreenProps = NativeStackScreenProps<RootStackParamList, 'First'>;
@@ -2329,13 +2329,11 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
         }}
       />
       
-      {/* NEW: SVG Logo Overlay */}
+      {/* NEW: SVG Logo Overlay - Static */}
       <View style={styles.logoOverlay} pointerEvents="none">
-        <AnimatedIranverseLogo
+        <IranverseLogo
           size={100}
           variant="brand"
-          animationMode="pulse"
-          autoStart={true}
         />
       </View>
       
