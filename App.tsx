@@ -94,6 +94,12 @@ export type RootStackParamList = {
   };
   
   // ========================================================================================
+  // LEGAL SCREENS
+  // ========================================================================================
+  Terms: undefined;
+  Privacy: undefined;
+  
+  // ========================================================================================
   // MAIN APPLICATION SCREENS
   // ========================================================================================
   Home: { 
@@ -177,6 +183,8 @@ import OnboardingCompleteScreen from './src/features/onboarding/screens/Onboardi
 // Main Application Screens
 import HomeScreen from './src/screens/HomeScreen';
 import ThreeDSceneScreen from './src/screens/ThreeDSceneScreen';
+import TermsScreen from './src/screens/legal/TermsScreen';
+import PrivacyScreen from './src/screens/legal/PrivacyScreen';
 
 
 import { LogBox } from 'react-native';
@@ -378,6 +386,18 @@ const AppNavigation: React.FC = () => {
             statusBarStyle: 'light',
             statusBarHidden: false,
           }}
+        />
+        
+        <Stack.Screen 
+          name="Terms" 
+          component={TermsScreen}
+          options={TransitionConfigs.modal}
+        />
+        
+        <Stack.Screen 
+          name="Privacy" 
+          component={PrivacyScreen}
+          options={TransitionConfigs.modal}
         />
       </Stack.Navigator>
     </NavigationContainer>

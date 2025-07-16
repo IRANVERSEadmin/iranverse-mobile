@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native';
 import {
   SafeAreaProvider,
@@ -889,6 +890,188 @@ const ShowcaseContent: React.FC = () => {
         </Section>
       )}
       
+      {/* 9.5 LOGO COLOR VARIATIONS - Rare & Modern Colors */}
+      {shouldShowSection('branding') && (
+        <Section 
+          title="IRANVERSE Logo Color Collection" 
+          description="15 rare, modern, and beautiful color variations"
+          variant="elevated"
+          category="branding"
+        >
+          <H3 style={styles.subsectionTitle}>Exclusive Color Palette</H3>
+          
+          <View style={styles.logoColorGrid}>
+            {/* Row 1 - Gradient Gems */}
+            <View style={styles.logoColorRow}>
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FF006E' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Neon Rose</Caption>
+                <Caption style={styles.logoColorHex}>#FF006E</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#8338EC' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Ultra Violet</Caption>
+                <Caption style={styles.logoColorHex}>#8338EC</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#3A86FF' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Electric Blue</Caption>
+                <Caption style={styles.logoColorHex}>#3A86FF</Caption>
+              </View>
+            </View>
+            
+            {/* Row 2 - Metallic Luxe */}
+            <View style={styles.logoColorRow}>
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FFB700' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Liquid Gold</Caption>
+                <Caption style={styles.logoColorHex}>#FFB700</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#B8B8D1' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Platinum Mist</Caption>
+                <Caption style={styles.logoColorHex}>#B8B8D1</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FF5E5B' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Coral Flame</Caption>
+                <Caption style={styles.logoColorHex}>#FF5E5B</Caption>
+              </View>
+            </View>
+            
+            {/* Row 3 - Cosmic Dreams */}
+            <View style={styles.logoColorRow}>
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#5B5F97' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Cosmic Purple</Caption>
+                <Caption style={styles.logoColorHex}>#5B5F97</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FFC145' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Solar Flare</Caption>
+                <Caption style={styles.logoColorHex}>#FFC145</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FFFFFB' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Pure Light</Caption>
+                <Caption style={styles.logoColorHex}>#FFFFFB</Caption>
+              </View>
+            </View>
+            
+            {/* Row 4 - Nature's Rarities */}
+            <View style={styles.logoColorRow}>
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#06FFA5' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Quantum Mint</Caption>
+                <Caption style={styles.logoColorHex}>#06FFA5</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#FFE66D' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Cyber Yellow</Caption>
+                <Caption style={styles.logoColorHex}>#FFE66D</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#4ECDC4' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Teal Aurora</Caption>
+                <Caption style={styles.logoColorHex}>#4ECDC4</Caption>
+              </View>
+            </View>
+            
+            {/* Row 5 - Future Tones */}
+            <View style={styles.logoColorRow}>
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#292F36' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Dark Matter</Caption>
+                <Caption style={styles.logoColorHex}>#292F36</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#F71735' }]}>
+                  <Logo size={50} variant="white" />
+                </View>
+                <Caption style={styles.logoColorName}>Laser Red</Caption>
+                <Caption style={styles.logoColorHex}>#F71735</Caption>
+              </View>
+              
+              <View style={styles.logoColorItem}>
+                <View style={[styles.logoColorBox, { backgroundColor: '#8FE1A5' }]}>
+                  <Logo size={50} variant="black" />
+                </View>
+                <Caption style={styles.logoColorName}>Neo Sage</Caption>
+                <Caption style={styles.logoColorHex}>#8FE1A5</Caption>
+              </View>
+            </View>
+          </View>
+          
+          {/* Gradient Logo Showcase */}
+          <H3 style={[styles.subsectionTitle, { marginTop: 30 }]}>Special Gradient Edition</H3>
+          <View style={styles.gradientLogoContainer}>
+            <View style={[styles.gradientLogoBox, { 
+              backgroundColor: '#8338EC',
+              overflow: 'hidden',
+            }]}>
+              {/* Gradient effect using overlapping views */}
+              <View style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#FF006E',
+                opacity: 0.7,
+              }} />
+              <View style={{
+                position: 'absolute',
+                top: '50%',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#3A86FF',
+                opacity: 0.5,
+              }} />
+              <Logo size={80} variant="white" style={{ zIndex: 1 }} />
+            </View>
+            <Caption style={styles.gradientLogoCaption}>
+              Neon Gradient - The Future of IRANVERSE
+            </Caption>
+          </View>
+        </Section>
+      )}
+      
       {/* 10. LAYOUT HELPERS */}
       {shouldShowSection('layout') && (
         <Section 
@@ -1355,6 +1538,62 @@ const styles = StyleSheet.create({
   footerVersion: {
     marginTop: 4,
     color: 'rgba(255, 255, 255, 0.4)',
+  },
+  
+  // Logo Color Variations
+  logoColorGrid: {
+    paddingTop: 15,
+    gap: 15,
+  },
+  logoColorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  logoColorItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  logoColorBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  logoColorName: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  logoColorHex: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 9,
+    fontFamily: Platform.select({ ios: 'SF Mono', android: 'monospace' }),
+  },
+  gradientLogoContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  gradientLogoBox: {
+    width: '100%',
+    height: 120,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  gradientLogoCaption: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
 

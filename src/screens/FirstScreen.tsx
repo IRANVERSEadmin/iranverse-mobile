@@ -15,7 +15,8 @@ import {
   Platform,
   BackHandler,
   TouchableOpacity,
-  TextInput as TextInputType
+  TextInput as TextInputType,
+  Alert
 } from 'react-native';
 import { GLView } from 'expo-gl';
 import * as THREE from 'three';
@@ -24,6 +25,12 @@ import { Audio } from 'expo-av';
 import { Asset } from 'expo-asset';
 import GradientBackground from '../shared/components/layout/GradientBackground';
 import IranverseLogo from '../shared/components/ui/IranverseLogo';
+import Button from '../shared/components/ui/Button';
+import { GoogleLogo, AppleLogo } from '../shared/components/ui/OAuthLogos';
+import { H1, Body, Caption } from '../shared/components/ui/Text';
+import AuthHeader from '../features/auth/components/AuthHeader';
+import AuthFooter from '../features/auth/components/AuthFooter';
+import PerformanceMonitor from '../shared/components/dev/PerformanceMonitor';
 
 type KeyboardState = 'hidden' | 'showing' | 'shown' | 'hiding';
 type FirstScreenProps = NativeStackScreenProps<RootStackParamList, 'First'>;
@@ -47,7 +54,7 @@ const CONFIG = {
   UI: {
     INPUT_POSITION_BOTTOM: 150, // Input field position
     BUTTON_POSITION_BOTTOM: 60, // Play button position
-    TITLE_POSITION_TOP: 175, // Title position
+    TITLE_POSITION_TOP: 190, // Title position
     TITLE_MOVE_DISTANCE: 40, // Title movement during orbit
   },
   SECURITY: {
@@ -62,12 +69,26 @@ const CONFIG = {
   }
 };
 
-const FirstScreen: React.FC<FirstScreenProps> = () => {
+const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const easeInOutCubic = (t: number): number => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  
+  // Error state for user feedback
+  const [sceneError, setSceneError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
+  
+  // Performance monitoring
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const [sceneStats, setSceneStats] = useState({
+    drawCalls: 0,
+    triangles: 0,
+    textures: 0,
+  });
 
   const glViewRef = useRef<any>(null);
   const inputRef = useRef<TextInputType>(null);
   const cameraRadiusRef = useRef(10);
+  const animationIdRef = useRef<number | null>(null);
   const lookAngleXRef = useRef(Math.atan2(5, 0));
   const lookAngleYRef = useRef(Math.acos(9.9 / 10));
   const controlsOpacity = useRef(new Animated.Value(1)).current;
@@ -164,6 +185,30 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
 
   const titlePosition = useRef(new Animated.Value(0)).current;
   const scenePositionAnim = useRef(new Animated.Value(0)).current; // For moving 3D scene up
+  
+  // OAuth buttons animation values
+  const [showAuthButtons, setShowAuthButtons] = useState(false);
+  const authButtonsOpacity = useRef(new Animated.Value(0)).current;
+  const authButtonsTranslate = useRef(new Animated.Value(50)).current;
+  const googleButtonScale = useRef(new Animated.Value(0.8)).current;
+  const appleButtonScale = useRef(new Animated.Value(0.8)).current;
+  const signInButtonScale = useRef(new Animated.Value(0.8)).current;
+  const createAccountButtonScale = useRef(new Animated.Value(0.8)).current;
+  
+  // Controls fade out animation
+  const controlsRowOpacity = useRef(new Animated.Value(1)).current;
+  const controlsRowScale = useRef(new Animated.Value(1)).current;
+  const backButtonOpacity = useRef(new Animated.Value(0)).current;
+  const backButtonScale = useRef(new Animated.Value(0.8)).current;
+  
+  // Auth header/footer animations
+  const authHeaderOpacity = useRef(new Animated.Value(0)).current;
+  const authHeaderTranslate = useRef(new Animated.Value(-30)).current;
+  const authFooterOpacity = useRef(new Animated.Value(0)).current;
+  const authFooterTranslate = useRef(new Animated.Value(30)).current;
+  
+  // Logo animation - moves down to sphere center when Next is tapped
+  const logoTranslateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     forceResetKeyboard();
@@ -177,6 +222,10 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
     return () => {
       if (soundRef.current) {
         soundRef.current.unloadAsync().catch(() => {});
+      }
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = null;
       }
     };
   }, []);
@@ -535,29 +584,275 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
 
   // Handle next button press
   const handleNextPress = (): void => {
-    if (isPasswordValid) {
-      triggerHapticFeedback('medium');
-      
-      // Move camera to final position
-      startCameraTransition(
-        11.03,  // Final X position
-        -0.75,  // Final Y position  
-        0,      // Final Z position
-        11.5,   // Final zoom/radius
-        2000    // 2 second transition
-      );
-      
-      // Animate 3D scene upward
-      Animated.timing(scenePositionAnim, {
-        toValue: -100, // Move up by 100 pixels
-        duration: 2000, // Same duration as camera transition
-        useNativeDriver: true,
-        easing: Animated.Easing.inOut(Animated.Easing.cubic)
-      }).start();
-    } else {
-      triggerHapticFeedback('light');
-      // Invalid password - could add visual feedback here
+    try {
+      if (isPasswordValid) {
+        triggerHapticFeedback('medium');
+        
+        // Move camera to final position
+        startCameraTransition(
+          11.03,  // Final X position
+          -0.75,  // Final Y position  
+          0,      // Final Z position
+          11.5,   // Final zoom/radius
+          2000    // 2 second transition
+        );
+        
+        // Animate 3D scene upward
+        Animated.timing(scenePositionAnim, {
+          toValue: -175, // Move up by 175 pixels
+          duration: 2000, // Same duration as camera transition
+          useNativeDriver: true,
+          easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+        }).start();
+        
+        // Animate 2D logo down to sphere center
+        // The 3D scene moves up by -175px, so the sphere center is effectively higher
+        // Logo starts at top: 60px, needs to reach the adjusted sphere center
+        const screenHeight = Dimensions.get('window').height;
+        const logoSize = 100; // Logo size from component
+        const sceneUpwardMovement = 175; // The scene moves up by this amount
+        const sphereCenterY = (screenHeight / 2) - (logoSize / 2) - 60 - sceneUpwardMovement; // Account for scene movement
+        
+        Animated.timing(logoTranslateY, {
+          toValue: sphereCenterY,
+          duration: 2800, // Slower animation (increased from 2000ms)
+          useNativeDriver: true,
+          easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // Gentler easing
+        }).start();
+        
+        // Fade out controls with scale down effect
+        Animated.parallel([
+          Animated.timing(controlsRowOpacity, {
+            toValue: 0,
+            duration: 800,
+            delay: 500,
+            useNativeDriver: true,
+            easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+          }),
+          Animated.timing(controlsRowScale, {
+            toValue: 0.9,
+            duration: 800,
+            delay: 500,
+            useNativeDriver: true,
+            easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+          })
+        ]).start();
+        
+        // Show auth buttons after controls fade out
+        setTimeout(() => {
+          showAuthButtonsAnimation();
+        }, 1200);
+        
+        // Show back button
+        setTimeout(() => {
+          Animated.parallel([
+            Animated.timing(backButtonOpacity, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.spring(backButtonScale, {
+              toValue: 1,
+              tension: 200,
+              friction: 10,
+              useNativeDriver: true,
+            })
+          ]).start();
+        }, 1500);
+      } else {
+        triggerHapticFeedback('light');
+        // Invalid password - could add visual feedback here
+      }
+    } catch (error) {
+      console.error('Error in handleNextPress:', error);
     }
+  };
+  
+  // Handle back button press
+  const handleBackPress = (): void => {
+    triggerHapticFeedback('light');
+    
+    // Hide auth header/footer
+    Animated.parallel([
+      Animated.timing(authHeaderOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(authFooterOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    // Reset logo position to top
+    Animated.timing(logoTranslateY, {
+      toValue: 0,
+      duration: 1000, // Slightly slower return animation
+      useNativeDriver: true,
+      easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // Gentler easing
+    }).start();
+    
+    // Hide auth buttons
+    Animated.parallel([
+      Animated.timing(authButtonsOpacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(authButtonsTranslate, {
+        toValue: 50,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowAuthButtons(false);
+    });
+    
+    // Hide back button
+    Animated.parallel([
+      Animated.timing(backButtonOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backButtonScale, {
+        toValue: 0.8,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
+    
+    // Show controls again
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(controlsRowOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+          easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+        }),
+        Animated.timing(controlsRowScale, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+          easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+        })
+      ]).start();
+    }, 200);
+    
+    // Move 3D scene back down
+    Animated.timing(scenePositionAnim, {
+      toValue: 0,
+      duration: 1500,
+      useNativeDriver: true,
+      easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    }).start();
+    
+    // Reset camera position
+    startCameraTransition(2.45, -0.97, -2.16, 10, 1500);
+    
+    // Reset button scales for next animation
+    googleButtonScale.setValue(0.8);
+    appleButtonScale.setValue(0.8);
+    signInButtonScale.setValue(0.8);
+    createAccountButtonScale.setValue(0.8);
+    
+    // Reset header/footer animations
+    authHeaderTranslate.setValue(-30);
+    authFooterTranslate.setValue(30);
+  };
+  
+  // Animate auth buttons appearance
+  const showAuthButtonsAnimation = (): void => {
+    setShowAuthButtons(true);
+    
+    // Fade in and slide up animation for buttons
+    Animated.parallel([
+      Animated.timing(authButtonsOpacity, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(authButtonsTranslate, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }),
+    ]).start();
+    
+    // Animate header appearance
+    Animated.parallel([
+      Animated.timing(authHeaderOpacity, {
+        toValue: 1,
+        duration: 800,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(authHeaderTranslate, {
+        toValue: 0,
+        duration: 800,
+        delay: 200,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }),
+    ]).start();
+    
+    // Animate footer appearance
+    Animated.parallel([
+      Animated.timing(authFooterOpacity, {
+        toValue: 1,
+        duration: 800,
+        delay: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(authFooterTranslate, {
+        toValue: 0,
+        duration: 800,
+        delay: 400,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }),
+    ]).start();
+    
+    // Staggered scale animations for each button
+    const staggerDelay = 100;
+    
+    Animated.timing(googleButtonScale, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+      easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+    }).start();
+    
+    setTimeout(() => {
+      Animated.timing(appleButtonScale, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }).start();
+    }, staggerDelay);
+    
+    setTimeout(() => {
+      Animated.timing(signInButtonScale, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }).start();
+    }, staggerDelay * 2);
+    
+    setTimeout(() => {
+      Animated.timing(createAccountButtonScale, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+        easing: (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+      }).start();
+    }, staggerDelay * 3);
   };
 
   // Start camera transition to specific position
@@ -844,33 +1139,37 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
   };
 
   const setupScene = async (gl: any): Promise<void> => {
+    try {
+      if (!gl) {
+        throw new Error('GL context not available');
+      }
+      
+      const renderer = new Renderer({ gl });
+      (renderer as any).setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+      (renderer as any).setClearColor(0x000000, 0); // Transparent background to show GradientBackground
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x000000, 20, 40);
+
+      const camera = new THREE.PerspectiveCamera(
+        80, 
+        gl.drawingBufferWidth / gl.drawingBufferHeight, 
+        0.1, 
+        1000
+      );
+      camera.position.set(5, 9.75, 0);
     
-    const renderer = new Renderer({ gl });
-    (renderer as any).setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
-    (renderer as any).setClearColor(0x000000, 0); // Transparent background to show GradientBackground
 
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x000000, 20, 40);
+      // Enhanced lighting setup
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
 
-    const camera = new THREE.PerspectiveCamera(
-      80, 
-      gl.drawingBufferWidth / gl.drawingBufferHeight, 
-      0.1, 
-      1000
-    );
-    camera.position.set(5, 9.75, 0);
-    
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 10, 7.5);
+      scene.add(directionalLight);
 
-    // Enhanced lighting setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(5, 10, 7.5);
-    scene.add(directionalLight);
-
-    // Create realistic Mars shader (inspired by observablehq.com/@mourner/3d-planets-with-three-js)
-    const createMarsShader = () => {
+      // Create realistic Mars shader (inspired by observablehq.com/@mourner/3d-planets-with-three-js)
+      const createMarsShader = () => {
       const vertexShader = `
         varying vec2 vUv;
         varying vec3 vPosition;
@@ -1535,17 +1834,24 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
     await loadAudioFile();
 
     const animate = (): void => {
-      const elapsed = clock.getElapsedTime();
-      
+      try {
+        if (!sceneDataRef.current || !gl) {
+          return;
+        }
+        
+        const elapsed = clock.getElapsedTime();
+        
+        // Safe uniform updates
+        if (marsMaterial?.uniforms?.uTime) {
+          marsMaterial.uniforms.uTime.value = elapsed;
+        }
+        if (marsMaterial?.uniforms?.uSunPosition) {
+          marsMaterial.uniforms.uSunPosition.value.set(5, 10, 7.5);
+        }
 
-      if (marsMaterial.uniforms.uTime) {
-        marsMaterial.uniforms.uTime.value = elapsed;
-      }
-      if (marsMaterial.uniforms.uSunPosition) {
-        marsMaterial.uniforms.uSunPosition.value.set(5, 10, 7.5);
-      }
-
-      mars.rotation.y = elapsed * 0.05;
+        if (mars) {
+          mars.rotation.y = elapsed * 0.05;
+        }
 
           if (cameraTransitionRef.current?.isTransitioning) {
         const now = Date.now();
@@ -1780,7 +2086,11 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       }
 
       // Update smooth camera interpolation and momentum
-      updateSmoothCameraInterpolation();
+      try {
+        updateSmoothCameraInterpolation();
+      } catch (error) {
+        console.error('Error updating camera interpolation:', error);
+      }
 
       // Get beat analysis data first
       const analysis = audioAnalysisRef.current;
@@ -2049,12 +2359,43 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       
 
       
-      (renderer as any).render(scene, camera);
-      gl.endFrameEXP();
-      requestAnimationFrame(animate);
+      try {
+        if (renderer && scene && camera) {
+          (renderer as any).render(scene, camera);
+          
+          // Collect performance stats
+          if (renderer.info) {
+            setSceneStats({
+              drawCalls: renderer.info.render.calls || 0,
+              triangles: renderer.info.render.triangles || 0,
+              textures: renderer.info.programs?.length || 0,
+            });
+          }
+        }
+        if (gl && gl.endFrameEXP) {
+          gl.endFrameEXP();
+        }
+      } catch (renderError) {
+        console.error('Error during render:', renderError);
+      }
+      
+      animationIdRef.current = requestAnimationFrame(animate);
+      } catch (error) {
+        console.error('Error in animation loop:', error);
+        setSceneError('Animation error occurred');
+        // Stop animation loop on critical error
+        if (animationIdRef.current) {
+          cancelAnimationFrame(animationIdRef.current);
+          animationIdRef.current = null;
+        }
+      }
     };
 
     animate();
+    } catch (error) {
+      console.error('Error in setupScene:', error);
+      setSceneError('Failed to initialize 3D scene');
+    }
   };
 
   // Enterprise-grade pan responder with 2-finger zoom
@@ -2325,6 +2666,25 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
       style={styles.container}
     >
       <View style={styles.content} {...panResponder.panHandlers}>
+      {sceneError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{sceneError}</Text>
+          {retryCount < maxRetries && (
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={async () => {
+                setSceneError(null);
+                setRetryCount(retryCount + 1);
+                if (glViewRef.current?.gl) {
+                  await setupScene(glViewRef.current.gl);
+                }
+              }}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       <Animated.View 
         style={[
           styles.glViewContainer,
@@ -2340,22 +2700,36 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
           style={styles.glView}
           onContextCreate={async (gl) => {
             try {
+              if (!gl) {
+                throw new Error('GL context not available');
+              }
               glViewRef.current = { gl };
               await setupScene(gl);
             } catch (error) {
-              // Error handled silently in production
+              console.error('Error creating GL context:', error);
+              setSceneError('Failed to initialize 3D graphics');
             }
           }}
         />
       </Animated.View>
       
-      {/* NEW: SVG Logo Overlay - Static */}
-      <View style={styles.logoOverlay} pointerEvents="none">
+      {/* NEW: SVG Logo Overlay - Animated */}
+      <Animated.View 
+        style={[
+          styles.logoOverlay,
+          {
+            transform: [{
+              translateY: logoTranslateY
+            }]
+          }
+        ]} 
+        pointerEvents="none"
+      >
         <IranverseLogo
           size={100}
           variant="brand"
         />
-      </View>
+      </Animated.View>
       
       
       {/* IRANVERSE Title - High-tech minimal design - NEVER MOVES */}
@@ -2370,19 +2744,21 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
           }]
         }
       ]}>
-        <Text style={styles.titleText}>IRANVERSE</Text>
+        <H1 style={styles.titleText}>IRANVERSE</H1>
       </Animated.View>
       
       {/* Enterprise Controls Row - Input Field, Play Button, Next Button */}
       <Animated.View style={[
         styles.controlsRowContainer, 
         { 
-          opacity: controlsOpacity,
+          opacity: Animated.multiply(controlsOpacity, controlsRowOpacity),
           transform: [{
             translateY: uiPositionAnim.interpolate({
               inputRange: [0, 1],
               outputRange: [0, -CONFIG.ANIMATION.KEYBOARD_SLIDE_DISTANCE],
             })
+          }, {
+            scale: controlsRowScale
           }]
         }
       ]}>
@@ -2499,6 +2875,152 @@ const FirstScreen: React.FC<FirstScreenProps> = () => {
 
       {/* Enterprise Custom Keyboard */}
       {renderEnterpriseKeyboard()}
+      
+      {/* Back Button */}
+      <Animated.View 
+        style={[
+          styles.backButtonContainer,
+          {
+            opacity: backButtonOpacity,
+            transform: [{ scale: backButtonScale }]
+          }
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackPress}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+      </Animated.View>
+      
+      {/* Auth Header - Removed per user request */}
+      
+      {/* OAuth Authentication Section */}
+      {showAuthButtons && (
+        <Animated.View 
+          style={[
+            styles.authContainer,
+            {
+              opacity: authButtonsOpacity,
+              transform: [{ translateY: authButtonsTranslate }]
+            }
+          ]}
+        >
+          <View style={styles.authButtonsWrapper}>
+            {/* Google OAuth Button */}
+            <Animated.View style={{ transform: [{ scale: googleButtonScale }] }}>
+              <Button
+                variant="glass"
+                onPress={() => {
+                  triggerHapticFeedback('light');
+                  Alert.alert(
+                    'Google OAuth Setup',
+                    'To set up Google OAuth:\n\n1. Go to console.cloud.google.com\n2. Create a new project\n3. Enable Google Sign-In API\n4. Create OAuth 2.0 credentials\n5. Add your bundle ID/package name\n6. Download configuration file',
+                    [{ text: 'OK' }]
+                  );
+                }}
+                leftIcon={<GoogleLogo size={20} color="#FFFFFF" />}
+                fullWidth
+                style={styles.authButton}
+              >
+                Continue with Google
+              </Button>
+            </Animated.View>
+            
+            {/* Apple OAuth Button */}
+            <Animated.View style={{ transform: [{ scale: appleButtonScale }] }}>
+              <Button
+                variant="glass"
+                onPress={() => {
+                  triggerHapticFeedback('light');
+                  Alert.alert(
+                    'Apple Sign In Setup',
+                    'To set up Apple Sign In:\n\n1. Go to developer.apple.com\n2. Enable Sign In with Apple capability\n3. Create Service ID\n4. Configure domain and redirect URLs\n5. Generate private key\n6. Update app entitlements',
+                    [{ text: 'OK' }]
+                  );
+                }}
+                leftIcon={<AppleLogo size={20} color="#FFFFFF" />}
+                fullWidth
+                style={styles.authButton}
+              >
+                Continue with Apple
+              </Button>
+            </Animated.View>
+            
+            {/* Continue with Email Button */}
+            <Animated.View style={{ transform: [{ scale: signInButtonScale }] }}>
+              <Button
+                variant="glass"
+                onPress={() => {
+                  triggerHapticFeedback('light');
+                  navigation.navigate('Login', { email: undefined });
+                }}
+                fullWidth
+                style={styles.authButton}
+              >
+                Continue with Email
+              </Button>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      )}
+      
+      {/* Auth Footer */}
+      {showAuthButtons && (
+        <Animated.View 
+          style={[
+            styles.authFooterContainer,
+            {
+              opacity: authFooterOpacity,
+              transform: [{ translateY: authFooterTranslate }]
+            }
+          ]}
+        >
+          <Caption style={styles.footerText}>
+            By continuing, you agree to IRANVERSE's
+          </Caption>
+          <View style={styles.legalLinksContainer}>
+            <TouchableOpacity onPress={() => navigation.navigate('Terms' as any)}>
+              <Caption style={styles.footerLink}>Terms of Service</Caption>
+            </TouchableOpacity>
+            <Caption style={styles.footerText}> and </Caption>
+            <TouchableOpacity onPress={() => navigation.navigate('Privacy' as any)}>
+              <Caption style={styles.footerLink}>Privacy Policy</Caption>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+      
+      {/* DEV TOOL - Temporary UI Components Showcase */}
+      <View style={styles.devToolsContainer}>
+        <TouchableOpacity
+          style={[styles.devToolButton, { marginBottom: 10 }]}
+          onPress={() => {
+            // Navigate to showcase screen
+            // @ts-ignore - Navigation typing
+            navigation.navigate('Showcase');
+          }}
+        >
+          <Text style={styles.devToolText}>🛠️ UI Showcase</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.devToolButton}
+          onPress={() => setShowPerformanceMonitor(!showPerformanceMonitor)}
+        >
+          <Text style={styles.devToolText}>📊 {showPerformanceMonitor ? 'Hide' : 'Show'} Monitor</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Performance Monitor */}
+      <PerformanceMonitor
+        visible={showPerformanceMonitor}
+        position="top-right"
+        glContext={glViewRef.current?.gl}
+        sceneInfo={sceneStats}
+      />
       </View>
     </GradientBackground>
   );
@@ -2517,6 +3039,34 @@ const styles = StyleSheet.create({
   },
   glViewContainer: {
     flex: 1,
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    padding: 15,
+    borderRadius: 10,
+    zIndex: 1000,
+  },
+  errorText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignSelf: 'center',
+  },
+  retryButtonText: {
+    color: '#FF0000',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   titleContainer: {
     position: 'absolute',
@@ -2537,7 +3087,7 @@ const styles = StyleSheet.create({
     color: '#ffffff', // Changed to white
     fontSize: 32, // Increased from 24 to 32
     fontWeight: 'bold', // Changed from '100' to 'bold'
-    letterSpacing: 6, // Slightly reduced for bold font readability
+    letterSpacing: 0, // Standard spacing between characters
     textAlign: 'center',
     fontFamily: Platform.select({
       ios: 'SF Pro Display', // Simple system font
@@ -2826,6 +3376,140 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  devToolsContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1000,
+  },
+  devToolButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  devToolText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  authContainer: {
+    position: 'absolute',
+    bottom: 120,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    zIndex: 999,
+  },
+  authButtonsWrapper: {
+    width: '100%',
+    maxWidth: 320,
+    alignSelf: 'center',
+  },
+  authButton: {
+    marginBottom: 6,
+    borderRadius: 24,
+    paddingVertical: 16,
+  },
+  backButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 1000,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '300',
+    marginLeft: -2,
+  },
+  authHeaderContainer: {
+    position: 'absolute',
+    top: 120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 999,
+  },
+  authHeaderContent: {
+    alignItems: 'center',
+  },
+  authTitle: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  authSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  authFooterContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    zIndex: 999,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
+    maxWidth: 320,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  dividerText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 16,
+    fontSize: 12,
+  },
+  footerLink: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    textDecorationLine: 'underline',
+    marginHorizontal: 2,
+  },
+  footerLinkBold: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  footerText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  footerLinkSmall: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    textDecorationLine: 'underline',
+  },
+  legalLinksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
   },
 });
 

@@ -73,7 +73,7 @@ class GlobalErrorHandler {
       
       // Call original handler if exists
       if (originalHandler) {
-        originalHandler(event);
+        originalHandler.call(window, event);
       }
     };
 
