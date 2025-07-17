@@ -70,7 +70,7 @@ const IranverseLogo: React.FC<IranverseLogoProps> = ({
     
     switch (variant) {
       case 'brand':
-        return '#EC602A'; // IRANVERSE brand orange
+        return '#FF6A00'; // IRANVERSE vibrant orange
       case 'white':
         return '#FFFFFF';
       case 'black':
@@ -78,7 +78,7 @@ const IranverseLogo: React.FC<IranverseLogoProps> = ({
       case 'auto':
         return colorScheme === 'dark' ? '#FFFFFF' : '#000000';
       default:
-        return '#EC602A';
+        return '#FF6A00';
     }
   }, [variant, color, theme, colorScheme]);
   

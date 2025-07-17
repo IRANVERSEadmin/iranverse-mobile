@@ -45,7 +45,7 @@ const CONFIG = {
     CONTROLS_FADE_DURATION: 800, // Controls fade animation
   },
   PERFORMANCE: {
-    MAX_PARTICLES: 640, // Quantum particle count (reduced by 20%)
+    MAX_PARTICLES: 1200, // Premium quantum particle count for dense field
     TARGET_FPS: 60, // Target frame rate
     GRID_DIVISIONS: 38, // Grid line density
     MAX_VELOCITY: 0.1, // Gesture velocity limit
@@ -192,6 +192,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const controlsRowScale = useRef(new Animated.Value(1)).current;
   const backButtonOpacity = useRef(new Animated.Value(0)).current;
   const backButtonScale = useRef(new Animated.Value(0.8)).current;
+  const backButtonGhostOpacity = useRef(new Animated.Value(0.05)).current; // Ghost state
+  const backButtonHintOpacity = useRef(new Animated.Value(0)).current; // Hint text
   
   // Auth header/footer animations
   const authHeaderOpacity = useRef(new Animated.Value(0)).current;
@@ -245,6 +247,36 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       };
     }
   }, [showCursor]);
+  
+  // Ghost back button pulse effect
+  useEffect(() => {
+    // Create subtle pulse animation that runs every 5 seconds
+    const pulseAnimation = () => {
+      Animated.sequence([
+        Animated.timing(backButtonGhostOpacity, {
+          toValue: 0.15, // Slightly more visible
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backButtonGhostOpacity, {
+          toValue: 0.05, // Back to almost invisible
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    };
+    
+    // Start first pulse after 3 seconds
+    const initialTimer = setTimeout(pulseAnimation, 3000);
+    
+    // Then pulse every 5 seconds
+    const intervalTimer = setInterval(pulseAnimation, 5000);
+    
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, []);
 
   useEffect(() => {
     initializeAudioSystem();
@@ -706,11 +738,11 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           startTypingAnimation(); // Start typing animation when auth buttons appear
         }, 1200);
         
-        // Show back button
+        // Show back button as ghost
         setTimeout(() => {
           Animated.parallel([
             Animated.timing(backButtonOpacity, {
-              toValue: 1,
+              toValue: 1, // Container is visible but content will be ghosted
               duration: 400,
               useNativeDriver: true,
             }),
@@ -720,6 +752,21 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
               friction: 10,
               useNativeDriver: true,
             })
+          ]).start();
+          
+          // Show hint briefly
+          Animated.sequence([
+            Animated.timing(backButtonHintOpacity, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.delay(2000),
+            Animated.timing(backButtonHintOpacity, {
+              toValue: 0,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
           ]).start();
         }, 1500);
       } else {
@@ -1545,21 +1592,23 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
 
     // Quantum field parameters
     const vacuumEnergyDensity = 0.15;
-    const uncertaintyPrinciple = 0.08;
-    const quantumCoherence = 0.25;
-    const fieldRadius = 1.25; // Small contained field
-    const entanglementProbability = 0.12;
+    const uncertaintyPrinciple = 0.15; // High uncertainty for dynamic behavior
+    const quantumCoherence = 0.45; // Strong coherence for wave-like effects
+    const fieldRadius = 2.0; // Expansive quantum field
+    const entanglementProbability = 0.25; // Frequent quantum entanglement
+    const quantumTunneling = 0.08; // Probability of quantum tunneling
+    const superpositionStrength = 0.3; // Quantum superposition visibility
 
     // Initialize quantum particles with quantum properties
     for (let i = 0; i < quantumParticleCount; i++) {
       // Position particles inside spherical quantum field
-      let x: number, y: number, z: number, r: number;
+      let x: number, y: number, z: number, radius: number;
       do {
         x = (Math.random() - 0.5) * 2;
         y = (Math.random() - 0.5) * 2;
         z = (Math.random() - 0.5) * 2;
-        r = Math.sqrt(x * x + y * y + z * z);
-      } while (r > 1); // Ensure particles are inside unit sphere
+        radius = Math.sqrt(x * x + y * y + z * z);
+      } while (radius > 1); // Ensure particles are inside unit sphere
       
       // Scale to desired field radius
       const fieldScale = fieldRadius * 0.8;
@@ -1569,34 +1618,53 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       
       const basePos = new THREE.Vector3(x, y, z);
       
+      const particlePhase = Math.random() * Math.PI * 2;
       const particle = {
         basePosition: basePos.clone(),
         currentPosition: basePos.clone(),
         velocity: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.001,  // Very slow motion
-          (Math.random() - 0.5) * 0.001,
-          (Math.random() - 0.5) * 0.001
+          (Math.random() - 0.5) * 0.003 * Math.cos(particlePhase),
+          (Math.random() - 0.5) * 0.003 * Math.sin(particlePhase),
+          (Math.random() - 0.5) * 0.003
         ),
-        phase: Math.random() * Math.PI * 2,
+        phase: particlePhase,
         quantumState: Math.random() > 0.7 ? 1 : 0, // 30% real, 70% virtual
         existenceProbability: Math.random() * 0.8 + 0.2,
         entanglementPartner: Math.random() < entanglementProbability ? 
           Math.floor(Math.random() * quantumParticleCount) : null,
         lastInteraction: 0,
         energyLevel: Math.random() * 0.5 + 0.5,
-        spinDirection: Math.random() > 0.5 ? 1 : -1
+        spinDirection: Math.random() > 0.5 ? 1 : -1,
+        // Premium properties
+        waveFunction: Math.random() * Math.PI,
+        coherenceLength: 0.1 + Math.random() * 0.2,
+        quantumMemory: [], // Store previous positions for trail effect
+        correlationStrength: Math.random(),
+        oscillationPhase: Math.random() * Math.PI * 2
       };
       
       quantumParticles.push(particle);
       
       // Set initial visual properties
       quantumPositions.set([x, y, z], i * 3);
-      quantumSizes[i] = 0.04 + Math.random() * 0.06;
-      quantumOpacities[i] = (particle.existenceProbability * particle.quantumState) * 2.0;
+      // Dynamic size based on energy and quantum state
+      const baseSize = 0.02 + particle.energyLevel * 0.08;
+      const quantumSize = particle.quantumState > 0.5 ? baseSize * 1.5 : baseSize;
+      quantumSizes[i] = quantumSize + Math.sin(particle.phase) * 0.02;
       
-      // Pure grayscale color spectrum
+      // Layered opacity for depth effect
+      const coreOpacity = particle.existenceProbability * particle.quantumState;
+      const glowOpacity = (1 - particle.quantumState) * 0.5;
+      quantumOpacities[i] = (coreOpacity + glowOpacity) * 3.0;
+      
+      // Premium quantum color with energy-dependent spectrum
       const brightness = particle.energyLevel;
-      const grayColor = new THREE.Color(brightness * 0.8, brightness * 0.8, brightness * 0.8);
+      const quantumPhase = particle.phase / (Math.PI * 2);
+      // Subtle color shifts based on quantum state - from deep blue through white to gold
+      const colorR = brightness * (0.7 + particle.quantumState * 0.3 + quantumPhase * 0.1);
+      const colorG = brightness * (0.8 + particle.quantumState * 0.2);
+      const colorB = brightness * (0.9 + (1 - particle.quantumState) * 0.2);
+      const grayColor = new THREE.Color(colorR, colorG, colorB);
       quantumColors.set([grayColor.r, grayColor.g, grayColor.b], i * 3);
     }
 
@@ -1640,20 +1708,39 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         vec2 center = gl_PointCoord - vec2(0.5);
         float distance = length(center);
         
-        // Quantum probability distribution (softer falloff for better visibility)
-        float probability = exp(-distance * distance * 4.0);
+        // Multi-layered quantum probability distribution
+        float coreProbability = exp(-distance * distance * 8.0); // Sharp core
+        float haloProbability = exp(-distance * distance * 2.0); // Soft halo
+        float probability = coreProbability + haloProbability * 0.3;
         
-        // Add quantum uncertainty flickering (more pronounced)
-        float uncertainty = sin(time * 10.0 + distance * 20.0) * 0.5 + 0.8;
+        // Quantum field fluctuations with multiple frequencies
+        float microFluctuation = sin(time * 50.0 + distance * 100.0) * 0.1;
+        float macroFluctuation = sin(time * 5.0 - distance * 20.0) * 0.2;
+        float uncertainty = 0.7 + microFluctuation + macroFluctuation;
         
-        // Wave function interference pattern (enhanced)
-        float waveFunction = sin(distance * 40.0 - time * 5.0) * 0.3 + 0.9;
+        // Complex wave interference patterns
+        float wave1 = sin(distance * 60.0 - time * 8.0) * 0.2;
+        float wave2 = cos(distance * 30.0 + time * 4.0) * 0.15;
+        float wave3 = sin(distance * 90.0 - time * 12.0 + vUv.x * 50.0) * 0.1;
+        float waveFunction = 1.0 + wave1 + wave2 + wave3;
         
-        // Enhanced quantum effects for better visibility
-        float finalAlpha = probability * uncertainty * waveFunction * vOpacity * 2.0;
+        // Quantum entanglement visual effect
+        float entanglementGlow = sin(time * 3.0 + vUv.y * 20.0) * 0.2 + 0.8;
         
-        // Enhanced energy level glow with color variation
-        vec3 glowColor = vColor * (1.8 + sin(time * 3.0) * 0.7);
+        // Premium layered transparency
+        float finalAlpha = probability * uncertainty * waveFunction * entanglementGlow * vOpacity * 2.5;
+        
+        // Premium quantum glow with chromatic aberration effect
+        float energyPulse = sin(time * 4.0 + vUv.x * 10.0) * 0.3 + 1.0;
+        vec3 coreColor = vColor * 2.5 * energyPulse;
+        
+        // Add subtle chromatic shift for premium effect
+        vec3 chromaticShift = vec3(
+          sin(time * 2.0) * 0.05,
+          cos(time * 2.5) * 0.05,
+          sin(time * 3.0) * 0.05
+        );
+        vec3 glowColor = coreColor + chromaticShift;
         
         gl_FragColor = vec4(glowColor, finalAlpha);
       }
@@ -2317,6 +2404,11 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           ).normalize();
           
             particle.currentPosition.add(tunnelDirection.multiplyScalar(tunnelDistance));
+            
+            // Quantum tunneling burst effect
+            particle.energyLevel = Math.min(1.0, particle.energyLevel + 0.3);
+            particle.existenceProbability = 1.0; // Full visibility during tunneling
+            quantumSizes[i] *= 1.5; // Temporary size boost
           }
           
           let oscillationFrequency = 0.1 + particle.energyLevel * 0.3;
@@ -2324,15 +2416,25 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
             oscillationFrequency *= (1 + mediumResponse * 0.4);
           }
           
+          // Complex 3D Lissajous quantum oscillation pattern
+          const freq1 = oscillationFrequency;
+          const freq2 = oscillationFrequency * 1.618; // Golden ratio frequency
+          const freq3 = oscillationFrequency * 2.236; // Square root of 5
+          
           const quantumOscillation = new THREE.Vector3(
-          Math.sin(elapsed * oscillationFrequency + particle.phase) * 0.1,
-          Math.sin(elapsed * oscillationFrequency * 0.8 + particle.phase * 1.2) * 0.1,
-          Math.sin(elapsed * oscillationFrequency * 1.2 + particle.phase * 0.8) * 0.1
+            Math.sin(elapsed * freq1 + particle.phase) * 0.12 +
+            Math.sin(elapsed * freq2 * 0.7) * 0.06,
+            Math.cos(elapsed * freq2 + particle.phase * 1.2) * 0.12 +
+            Math.cos(elapsed * freq3 * 0.5) * 0.06,
+            Math.sin(elapsed * freq3 + particle.phase * 0.8) * 0.12 +
+            Math.sin(elapsed * freq1 * 1.3) * 0.06
           );
           
-          let zeroPointIntensity = vacuumEnergyDensity * 0.02;
+          // Premium zero-point energy with quantum foam effect
+          const quantumFoam = Math.random() * 0.001;
+          let zeroPointIntensity = vacuumEnergyDensity * 0.025 + quantumFoam;
           if (isAnalyzing) {
-            zeroPointIntensity *= (1 + slowResponse * 1.5);
+            zeroPointIntensity *= (1 + slowResponse * 2.0 + quickResponse * 0.5);
           }
           
           const zeroPointMotion = new THREE.Vector3(
@@ -2344,9 +2446,21 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           particle.velocity.add(zeroPointMotion);
           particle.velocity.multiplyScalar(0.98);
           
-          particle.currentPosition.copy(particle.basePosition)
-          .add(quantumOscillation.multiplyScalar(0.5))
-            .add(particle.velocity.clone().multiplyScalar(0.5));
+          // Quantum superposition - particle exists in multiple states
+          const superposition1 = particle.basePosition.clone()
+            .add(quantumOscillation.clone().multiplyScalar(0.7));
+          const superposition2 = particle.basePosition.clone()
+            .add(quantumOscillation.clone().multiplyScalar(-0.3))
+            .add(particle.velocity.clone().multiplyScalar(1.2));
+          
+          // Blend between superposition states
+          const superpositionBlend = (Math.sin(elapsed * 2.0 + particle.phase) + 1) * 0.5;
+          particle.currentPosition.lerpVectors(
+            superposition1,
+            superposition2,
+            superpositionBlend * superpositionStrength
+          );
+          particle.currentPosition.add(particle.velocity.clone().multiplyScalar(0.3));
           const distanceFromCenter = particle.currentPosition.length();
           const maxRadius = fieldRadius * 0.9;
           if (distanceFromCenter > maxRadius) {
@@ -2366,10 +2480,17 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
             sizeMultiplier *= (1 + quickResponse * 0.3);
           }
           
-          quantumOpacities[i] = particle.existenceProbability * stateOpacity * vacuumFluctuation * 1.8;
+          // Premium multi-layered opacity with quantum state mixing
+          const baseOpacity = particle.existenceProbability * stateOpacity;
+          const quantumMixing = Math.abs(Math.sin(elapsed * 3.0 + particle.phase * 2.0)) * 0.3;
+          const depthFade = 1.0 - (particle.currentPosition.z + fieldRadius) / (fieldRadius * 2) * 0.3;
+          quantumOpacities[i] = (baseOpacity + quantumMixing) * vacuumFluctuation * depthFade * 2.2;
           
-          const sizeFluctuation = 1.0 + uncertaintyFactor * 0.5;
-          quantumSizes[i] = (0.04 + particle.energyLevel * 0.06) * sizeFluctuation * sizeMultiplier;
+          // Dynamic size with quantum breathing effect
+          const breathingEffect = Math.sin(elapsed * 2.0 + particle.phase) * 0.15 + 1.0;
+          const sizeFluctuation = (1.0 + uncertaintyFactor * 0.6) * breathingEffect;
+          const energySize = 0.03 + particle.energyLevel * 0.07;
+          quantumSizes[i] = energySize * sizeFluctuation * sizeMultiplier * (particle.quantumState * 0.5 + 0.5);
         }
 
         // Update geometry attributes only when particles are updated
@@ -2979,7 +3100,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       {/* Enterprise Custom Keyboard */}
       {renderEnterpriseKeyboard()}
       
-      {/* Back Button */}
+      {/* Ghost Back Button */}
       <Animated.View 
         style={[
           styles.backButtonContainer,
@@ -2989,12 +3110,60 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           }
         ]}
       >
+        {/* Hint text */}
+        <Animated.Text style={[
+          styles.backButtonHint,
+          { opacity: backButtonHintOpacity }
+        ]}>
+          Swipe or tap here to go back
+        </Animated.Text>
+        
+        {/* Ghost button with larger hit area */}
         <TouchableOpacity
-          style={styles.backButton}
+          style={styles.backButtonHitArea}
           onPress={handleBackPress}
-          activeOpacity={0.7}
+          activeOpacity={1}
+          onPressIn={() => {
+            // Briefly show button on press
+            Animated.parallel([
+              Animated.timing(backButtonGhostOpacity, {
+                toValue: 0.4,
+                duration: 100,
+                useNativeDriver: true,
+              }),
+              Animated.spring(backButtonScale, {
+                toValue: 1.1,
+                tension: 300,
+                friction: 10,
+                useNativeDriver: true,
+              })
+            ]).start();
+          }}
+          onPressOut={() => {
+            // Return to ghost state
+            Animated.parallel([
+              Animated.timing(backButtonGhostOpacity, {
+                toValue: 0.05,
+                duration: 300,
+                useNativeDriver: true,
+              }),
+              Animated.spring(backButtonScale, {
+                toValue: 1,
+                tension: 300,
+                friction: 10,
+                useNativeDriver: true,
+              })
+            ]).start();
+          }}
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <View style={styles.backButton}>
+            <Animated.Text style={[
+              styles.backButtonText,
+              { opacity: backButtonGhostOpacity }
+            ]}>
+              ←
+            </Animated.Text>
+          </View>
         </TouchableOpacity>
       </Animated.View>
       
@@ -3495,20 +3664,41 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)', // Almost invisible background
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.05)', // Very faint border
     justifyContent: 'center',
     alignItems: 'center',
+    // Add subtle shadow for depth hint
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   backButtonText: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '300',
     marginLeft: -2,
+  },
+  backButtonHint: {
+    position: 'absolute',
+    top: 55,
+    left: 0,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '400',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+  },
+  backButtonHitArea: {
+    padding: 10, // Larger touch area for easier discovery
+    borderRadius: 30,
   },
   authHeaderContainer: {
     position: 'absolute',
