@@ -30,7 +30,6 @@ import { GoogleLogo, AppleLogo } from '../shared/components/ui/OAuthLogos';
 import { H1, Body, Caption } from '../shared/components/ui/Text';
 import AuthHeader from '../features/auth/components/AuthHeader';
 import AuthFooter from '../features/auth/components/AuthFooter';
-import PerformanceMonitor from '../shared/components/dev/PerformanceMonitor';
 
 type KeyboardState = 'hidden' | 'showing' | 'shown' | 'hiding';
 type FirstScreenProps = NativeStackScreenProps<RootStackParamList, 'First'>;
@@ -77,13 +76,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
   
-  // Performance monitoring
-  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
-  const [sceneStats, setSceneStats] = useState({
-    drawCalls: 0,
-    triangles: 0,
-    textures: 0,
-  });
 
   const glViewRef = useRef<any>(null);
   const inputRef = useRef<TextInputType>(null);
@@ -209,6 +201,18 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
   
   // Logo animation - moves down to sphere center when Next is tapped
   const logoTranslateY = useRef(new Animated.Value(0)).current;
+  
+  // Title animation for Next button
+  const titleTranslateY = useRef(new Animated.Value(0)).current;
+  const titleOpacity = useRef(new Animated.Value(1)).current;
+  const titleScale = useRef(new Animated.Value(1)).current;
+  
+  // Farsi typing animation
+  const [typingText, setTypingText] = useState('');
+  const [showCursor, setShowCursor] = useState(false);
+  const typingOpacity = useRef(new Animated.Value(0)).current;
+  const cursorOpacity = useRef(new Animated.Value(1)).current;
+  const fullText = 'انقلاب، از اینجا شروع میشه';
 
   useEffect(() => {
     forceResetKeyboard();
@@ -216,6 +220,31 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       forceResetKeyboard();
     };
   }, []);
+  
+  // Cursor blinking animation
+  useEffect(() => {
+    if (showCursor) {
+      const blinkAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(cursorOpacity, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(cursorOpacity, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      blinkAnimation.start();
+      
+      return () => {
+        blinkAnimation.stop();
+      };
+    }
+  }, [showCursor]);
 
   useEffect(() => {
     initializeAudioSystem();
@@ -365,10 +394,10 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       analysis.currentBeatStrength -= analysis.beatDecayRate * deltaTime * 60;
     }
     analysis.currentBeatStrength = Math.max(0, Math.min(1, analysis.currentBeatStrength));
-    analysis.quickPulse *= Math.pow(0.3, deltaTime);
-    analysis.mediumWave *= Math.pow(0.7, deltaTime);
-    analysis.slowResonance *= Math.pow(0.9, deltaTime);
-    analysis.targetBeatStrength *= Math.pow(0.1, deltaTime);
+    analysis.quickPulse *= Math.pow(0.85, deltaTime);  // Slower decay for more responsive animation
+    analysis.mediumWave *= Math.pow(0.92, deltaTime);  // Keep medium waves longer
+    analysis.slowResonance *= Math.pow(0.95, deltaTime);
+    analysis.targetBeatStrength *= Math.pow(0.5, deltaTime);
   };
 
   const stopBeatDetection = () => {
@@ -613,12 +642,45 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         const sceneUpwardMovement = 175; // The scene moves up by this amount
         const sphereCenterY = (screenHeight / 2) - (logoSize / 2) - 60 - sceneUpwardMovement; // Account for scene movement
         
+        // Animate logo down
         Animated.timing(logoTranslateY, {
           toValue: sphereCenterY,
           duration: 2800, // Slower animation (increased from 2000ms)
           useNativeDriver: true,
           easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 // Gentler easing
         }).start();
+        
+        // Animate title text to move with logo and disappear
+        // Title needs to maintain same distance from logo (130px difference)
+        const titleInitialTop = CONFIG.UI.TITLE_POSITION_TOP; // 190px
+        const logoInitialTop = 60; // Logo's initial position
+        const initialDistance = titleInitialTop - logoInitialTop; // 130px
+        
+        Animated.parallel([
+          // Move title down maintaining same distance from logo
+          Animated.timing(titleTranslateY, {
+            toValue: sphereCenterY + initialDistance,
+            duration: 2800,
+            useNativeDriver: true,
+            easing: (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+          }),
+          // Fade out with modern effect
+          Animated.timing(titleOpacity, {
+            toValue: 0,
+            duration: 1000,
+            delay: 300, // Start fading much sooner
+            useNativeDriver: true,
+            easing: (t: number) => t * t * t // Smooth cubic easing
+          }),
+          // Scale down slightly while fading
+          Animated.timing(titleScale, {
+            toValue: 0.8,
+            duration: 1000,
+            delay: 300,
+            useNativeDriver: true,
+            easing: (t: number) => t * t // Quadratic easing
+          })
+        ]).start();
         
         // Fade out controls with scale down effect
         Animated.parallel([
@@ -641,6 +703,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         // Show auth buttons after controls fade out
         setTimeout(() => {
           showAuthButtonsAnimation();
+          startTypingAnimation(); // Start typing animation when auth buttons appear
         }, 1200);
         
         // Show back button
@@ -762,6 +825,48 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
     // Reset header/footer animations
     authHeaderTranslate.setValue(-30);
     authFooterTranslate.setValue(30);
+  };
+  
+  // Start typing animation
+  const startTypingAnimation = (): void => {
+    // Fade in the typing container
+    Animated.timing(typingOpacity, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+    
+    // Type each character
+    let charIndex = 0;
+    const firstWord = 'انقلاب،';
+    const pauseAfterIndex = firstWord.length;
+    
+    const typeNextChar = () => {
+      if (charIndex < fullText.length) {
+        setTypingText(fullText.slice(0, charIndex + 1));
+        charIndex++;
+        
+        // Check if we just typed the first word
+        if (charIndex === pauseAfterIndex) {
+          // Show cursor during pause
+          setShowCursor(true);
+          // Wait 4 seconds before continuing
+          setTimeout(() => {
+            setShowCursor(false);
+            typeNextChar();
+          }, 4000);
+        } else {
+          // Normal typing speed
+          setTimeout(typeNextChar, 100);
+        }
+      } else {
+        // Show cursor after typing completes
+        setShowCursor(true);
+      }
+    };
+    
+    // Start typing after a small delay
+    setTimeout(typeNextChar, 300);
   };
   
   // Animate auth buttons appearance
@@ -1424,8 +1529,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
 
     // 2D SIN wave system - emanating from beneath main sphere
     const waveCenter = { x: 0, z: 0 }; // Directly beneath main sphere
-    const baseWaveSpeed = 2.0; // Base wave propagation speed
-    const baseWaveAmplitude = 0.18; // Base wave height
+    const baseWaveSpeed = 2.5; // Base wave propagation speed - slightly faster
+    const baseWaveAmplitude = 0.25; // Base wave height - more pronounced
     const waveFrequency = 3.0; // Wave density/spacing
     const positionAttr = gridGeometry.attributes.position;
     const baseY = Float32Array.from(positionAttr.array);
@@ -2101,8 +2206,8 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       const slowResponse = analysis.slowResonance;
 
       // 2D SIN wave animation - beat-responsive
-      const updateWaves = elapsed % 0.033 < 0.016; // Update ~30fps instead of 60fps
-      if (updateWaves) {
+      // Update every frame for smooth animation
+      {
         // Apply beat modulation to wave parameters
         const waveSpeed = baseWaveSpeed * (1 + mediumResponse * 0.3); // Medium response for smooth flow
         const waveAmplitude = baseWaveAmplitude * (1 + quickResponse * 0.5 + slowResponse * 0.2); // Multi-layer response
@@ -2363,14 +2468,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         if (renderer && scene && camera) {
           (renderer as any).render(scene, camera);
           
-          // Collect performance stats
-          if (renderer.info) {
-            setSceneStats({
-              drawCalls: renderer.info.render.calls || 0,
-              triangles: renderer.info.render.triangles || 0,
-              textures: renderer.info.programs?.length || 0,
-            });
-          }
         }
         if (gl && gl.endFrameEXP) {
           gl.endFrameEXP();
@@ -2732,15 +2829,21 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       </Animated.View>
       
       
-      {/* IRANVERSE Title - High-tech minimal design - NEVER MOVES */}
+      {/* IRANVERSE Title - High-tech minimal design - Moves with logo on Next */}
       <Animated.View style={[
         styles.titleContainer,
         {
+          opacity: titleOpacity,
           transform: [{
-            translateY: titlePosition.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, -40], // Move up by 40 pixels when orbit active only
-            })
+            translateY: Animated.add(
+              titlePosition.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -40], // Move up by 40 pixels when orbit active
+              }),
+              titleTranslateY // Add downward movement on Next button press
+            )
+          }, {
+            scale: titleScale
           }]
         }
       ]}>
@@ -2897,6 +3000,25 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
       
       {/* Auth Header - Removed per user request */}
       
+      {/* Farsi Typing Animation - Below Wavy Grid */}
+      <Animated.View 
+        style={[
+          styles.typingContainer,
+          {
+            opacity: typingOpacity,
+          }
+        ]}
+      >
+        <Text style={styles.typingText}>
+          {typingText}
+          {showCursor && (
+            <Animated.Text style={[styles.cursor, { opacity: cursorOpacity }]}>
+              _
+            </Animated.Text>
+          )}
+        </Text>
+      </Animated.View>
+      
       {/* OAuth Authentication Section */}
       {showAuthButtons && (
         <Animated.View 
@@ -2910,9 +3032,9 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
         >
           <View style={styles.authButtonsWrapper}>
             {/* Google OAuth Button */}
-            <Animated.View style={{ transform: [{ scale: googleButtonScale }] }}>
+            <Animated.View style={[{ transform: [{ scale: googleButtonScale }] }, { marginBottom: -12, marginTop: 0 }]}>
               <Button
-                variant="glass"
+                variant="primary"
                 onPress={() => {
                   triggerHapticFeedback('light');
                   Alert.alert(
@@ -2930,9 +3052,9 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
             </Animated.View>
             
             {/* Apple OAuth Button */}
-            <Animated.View style={{ transform: [{ scale: appleButtonScale }] }}>
+            <Animated.View style={[{ transform: [{ scale: appleButtonScale }] }, { marginBottom: -12, marginTop: -12 }]}>
               <Button
-                variant="glass"
+                variant="primary"
                 onPress={() => {
                   triggerHapticFeedback('light');
                   Alert.alert(
@@ -2941,7 +3063,7 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
                     [{ text: 'OK' }]
                   );
                 }}
-                leftIcon={<AppleLogo size={20} color="#FFFFFF" />}
+                leftIcon={<AppleLogo size={22} color="#FFFFFF" />}
                 fullWidth
                 style={styles.authButton}
               >
@@ -2950,9 +3072,9 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
             </Animated.View>
             
             {/* Continue with Email Button */}
-            <Animated.View style={{ transform: [{ scale: signInButtonScale }] }}>
+            <Animated.View style={[{ transform: [{ scale: signInButtonScale }] }, { marginTop: -12 }]}>
               <Button
-                variant="glass"
+                variant="primary"
                 onPress={() => {
                   triggerHapticFeedback('light');
                   navigation.navigate('Login', { email: undefined });
@@ -2992,35 +3114,6 @@ const FirstScreen: React.FC<FirstScreenProps> = ({ navigation }) => {
           </View>
         </Animated.View>
       )}
-      
-      {/* DEV TOOL - Temporary UI Components Showcase */}
-      <View style={styles.devToolsContainer}>
-        <TouchableOpacity
-          style={[styles.devToolButton, { marginBottom: 10 }]}
-          onPress={() => {
-            // Navigate to showcase screen
-            // @ts-ignore - Navigation typing
-            navigation.navigate('Showcase');
-          }}
-        >
-          <Text style={styles.devToolText}>🛠️ UI Showcase</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.devToolButton}
-          onPress={() => setShowPerformanceMonitor(!showPerformanceMonitor)}
-        >
-          <Text style={styles.devToolText}>📊 {showPerformanceMonitor ? 'Hide' : 'Show'} Monitor</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Performance Monitor */}
-      <PerformanceMonitor
-        visible={showPerformanceMonitor}
-        position="top-right"
-        glContext={glViewRef.current?.gl}
-        sceneInfo={sceneStats}
-      />
       </View>
     </GradientBackground>
   );
@@ -3087,7 +3180,7 @@ const styles = StyleSheet.create({
     color: '#ffffff', // Changed to white
     fontSize: 32, // Increased from 24 to 32
     fontWeight: 'bold', // Changed from '100' to 'bold'
-    letterSpacing: 0, // Standard spacing between characters
+    letterSpacing: 2, // Increased spacing for better readability
     textAlign: 'center',
     fontFamily: Platform.select({
       ios: 'SF Pro Display', // Simple system font
@@ -3377,25 +3470,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  devToolsContainer: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 1000,
-  },
-  devToolButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  devToolText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
   authContainer: {
     position: 'absolute',
     bottom: 120,
@@ -3410,7 +3484,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   authButton: {
-    marginBottom: 6,
+    // marginBottom handled by Animated.View wrapper
     borderRadius: 24,
     paddingVertical: 16,
   },
@@ -3510,6 +3584,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
+  },
+  typingContainer: {
+    position: 'absolute',
+    bottom: 515, // Positioned below the wavy grid
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 998,
+  },
+  typingText: {
+    fontFamily: 'Courier', // Will use system Courier font
+    fontSize: 18,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    writingDirection: 'rtl',
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  cursor: {
+    fontFamily: 'Courier',
+    fontSize: 18,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
 });
 
